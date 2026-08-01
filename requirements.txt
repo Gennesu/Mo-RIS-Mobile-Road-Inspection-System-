@@ -1,0 +1,11 @@
+# AI / computer vision
+ultralytics
+opencv-python
+numpy
+requests
+
+# API dan database
+fastapi
+uvicorn
+sqlalchemy
+pymysql
