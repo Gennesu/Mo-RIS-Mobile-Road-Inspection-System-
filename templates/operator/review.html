@@ -66,8 +66,14 @@
                 <label class="review-note-label" for="review-note-{{ detection.id }}">Catatan (opsional)</label>
                 <textarea id="review-note-{{ detection.id }}" class="review-note" maxlength="500" placeholder="Contoh: bayangan, tambalan aspal, atau lokasi kurang tepat"></textarea>
                 <div class="review-actions">
-                    <button class="review-action reject" type="button" data-decision="reject">Bukan lubang</button>
-                    <button class="review-action confirm" type="button" data-decision="confirm">Konfirmasi lubang</button>
+                    <button class="review-action reject" type="button" data-decision="reject">
+                        <span class="action-icon" aria-hidden="true">×</span>
+                        <span>Bukan lubang</span>
+                    </button>
+                    <button class="review-action confirm" type="button" data-decision="confirm">
+                        <span class="action-icon" aria-hidden="true">✓</span>
+                        <span>Konfirmasi lubang</span>
+                    </button>
                 </div>
                 <p class="review-feedback" aria-live="polite"></p>
             </div>
