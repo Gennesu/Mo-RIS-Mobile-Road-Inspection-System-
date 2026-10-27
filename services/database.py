@@ -257,6 +257,130 @@ def fetch_detection_reviews():
         conn.close()
 
 
+def fetch_confirmed_detections():
+    """Return confirmed potholes for operator cleanup."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                detection_id AS id,
+                label,
+                confidence,
+                length_cm,
+                width_cm,
+                image,
+                latitude,
+                longitude,
+                status,
+                verifier_label,
+                verifier_confidence,
+                verification_note,
+                detected_at,
+                verified_at
+            FROM detections
+            WHERE verification_status = 'confirmed'
+              AND label = 'pothole'
+            ORDER BY detection_id DESC
+            """
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            image_path = str(row.get("image") or "").replace("\\", "/").lstrip("/")
+            if image_path.lower().startswith("images/"):
+                image_path = "assets/img/potholes/" + image_path[7:]
+            elif image_path.lower().startswith("assets/potholes/"):
+                image_path = "assets/img/potholes/" + image_path[len("assets/potholes/"):]
+            elif image_path.lower().startswith("assets/cracks/"):
+                image_path = "assets/img/cracks/" + image_path[len("assets/cracks/"):]
+            row["image_path"] = image_path or None
+
+        return rows
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def delete_confirmed_detection(detection_id):
+    """Delete one confirmed pothole and its matching static image, if present."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    image_path = None
+
+    try:
+        cursor.execute(
+            """
+            SELECT label, verification_status, image
+            FROM detections
+            WHERE detection_id = %s
+            FOR UPDATE
+            """,
+            (detection_id,),
+        )
+        detection = cursor.fetchone()
+        if detection is None:
+            conn.rollback()
+            return {"deleted": False, "reason": "not_found"}
+        if (
+            detection.get("label") != "pothole"
+            or detection.get("verification_status") != "confirmed"
+        ):
+            conn.rollback()
+            return {"deleted": False, "reason": "not_confirmed"}
+
+        workspace_root = Path(__file__).resolve().parents[1]
+        image_value = str(detection.get("image") or "").replace("\\", "/").lstrip("/")
+        if image_value.lower().startswith("images/"):
+            image_value = "assets/img/potholes/" + image_value[7:]
+        elif image_value.lower().startswith("assets/potholes/"):
+            image_value = "assets/img/potholes/" + image_value[len("assets/potholes/"):]
+
+        candidate = (workspace_root / "static" / image_value).resolve()
+        pothole_directory = (
+            workspace_root / "static" / "assets" / "img" / "potholes"
+        ).resolve()
+        allowed_names = {
+            f"pothole_{detection_id}.jpg",
+            f"pothole_{detection_id}.jpeg",
+            f"pothole_{detection_id}.png",
+        }
+        if candidate.parent == pothole_directory and candidate.name.lower() in allowed_names:
+            image_path = candidate
+
+        cursor.execute(
+            """
+            DELETE FROM detections
+            WHERE detection_id = %s
+              AND verification_status = 'confirmed'
+              AND label = 'pothole'
+            """,
+            (detection_id,),
+        )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return {"deleted": False, "reason": "not_confirmed"}
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+    image_removed = False
+    if image_path and image_path.is_file():
+        try:
+            image_path.unlink()
+            image_removed = True
+        except OSError as error:
+            print(f"Gagal menghapus gambar {image_path.name}: {error}")
+
+    return {"deleted": True, "image_removed": image_removed}
+
+
 def fetch_operator_detection_feed(after_id=0, limit=6):
     """Read only detections created after the operator page's session watermark."""
     after_id = max(0, int(after_id or 0))

@@ -14,6 +14,8 @@ from services.database import (
     fetch_dashboard_stats,
     fetch_operator_detection_feed,
     fetch_detection_reviews,
+    fetch_confirmed_detections,
+    delete_confirmed_detection,
     update_detection_verification,
 )
 
@@ -70,15 +72,18 @@ def detectpage():
 def detection_review_page():
     try:
         detections = fetch_detection_reviews()
+        confirmed_detections = fetch_confirmed_detections()
         database_error = None
     except Exception as error:
         print(f"Gagal memuat antrean verifikasi: {error}")
         detections = []
+        confirmed_detections = []
         database_error = "Database belum siap atau migrasi verifikasi belum diterapkan."
 
     return render_template(
         "/operator/review.html",
         detections=detections,
+        confirmed_detections=confirmed_detections,
         database_error=database_error,
     )
 
@@ -105,6 +110,22 @@ def review_detection(detection_id):
 
     verification_status = "confirmed" if decision == "confirm" else "rejected"
     return jsonify({"ok": True, "verification_status": verification_status})
+
+
+@app.post("/operator/confirmed/<int:detection_id>/delete")
+def delete_confirmed_pothole(detection_id):
+    try:
+        result = delete_confirmed_detection(detection_id)
+    except Exception as error:
+        print(f"Gagal menghapus lubang terkonfirmasi #{detection_id}: {error}")
+        return jsonify({"ok": False, "error": "Gagal menghapus data lubang."}), 503
+
+    if not result["deleted"]:
+        if result["reason"] == "not_found":
+            return jsonify({"ok": False, "error": "Data lubang tidak ditemukan."}), 404
+        return jsonify({"ok": False, "error": "Hanya lubang terkonfirmasi yang dapat dihapus."}), 409
+
+    return jsonify({"ok": True, "image_removed": result["image_removed"]})
 
 
 @app.get("/operator/detection-feed")
