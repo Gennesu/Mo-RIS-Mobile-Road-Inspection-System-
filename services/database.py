@@ -257,6 +257,57 @@ def fetch_detection_reviews():
         conn.close()
 
 
+def fetch_operator_detection_feed(after_id=0, limit=6):
+    """Read only detections created after the operator page's session watermark."""
+    after_id = max(0, int(after_id or 0))
+    limit = max(1, min(10, int(limit or 6)))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                detection_id AS id,
+                label,
+                confidence,
+                length_cm,
+                width_cm,
+                image,
+                latitude,
+                longitude,
+                verification_status,
+                verifier_label,
+                verifier_confidence,
+                detected_at
+            FROM detections
+            WHERE detection_id > %s
+            ORDER BY detection_id DESC
+            LIMIT %s
+            """,
+            (after_id, limit),
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            image_path = str(row.get("image") or "").replace("\\", "/").lstrip("/")
+            if image_path.lower().startswith("images/"):
+                image_path = "assets/img/potholes/" + image_path[7:]
+            elif image_path.lower().startswith("assets/potholes/"):
+                image_path = "assets/img/potholes/" + image_path[len("assets/potholes/"):]
+            elif image_path.lower().startswith("assets/cracks/"):
+                image_path = "assets/img/cracks/" + image_path[len("assets/cracks/"):]
+            row["image_path"] = image_path or None
+
+        return {
+            "latest_id": max([after_id, *(int(row["id"]) for row in rows)]),
+            "detections": rows,
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def update_detection_verification(detection_id, decision, note=None):
     """Record an operator's decision separately from repair progress."""
     status = {

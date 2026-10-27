@@ -12,6 +12,7 @@ from flask import Flask, jsonify, render_template, request
 from routes.user_route import user_bp
 from services.database import (
     fetch_dashboard_stats,
+    fetch_operator_detection_feed,
     fetch_detection_reviews,
     update_detection_verification,
 )
@@ -104,6 +105,17 @@ def review_detection(detection_id):
 
     verification_status = "confirmed" if decision == "confirm" else "rejected"
     return jsonify({"ok": True, "verification_status": verification_status})
+
+
+@app.get("/operator/detection-feed")
+def operator_detection_feed():
+    after_id = request.args.get("after_id", default=0, type=int)
+    limit = request.args.get("limit", default=6, type=int)
+    try:
+        return jsonify(fetch_operator_detection_feed(after_id, limit))
+    except Exception as error:
+        print(f"Gagal memuat feed deteksi operator: {error}")
+        return jsonify({"error": "Feed deteksi sementara tidak tersedia."}), 503
 
 
 def is_process_running(process):
