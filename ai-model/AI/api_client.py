@@ -24,3 +24,16 @@ class APIClient:
                 print("Status:", response.status_code)
                 print("Response:", response.text)
             return None
+
+    def send_ai_verification(self, detection_id, result):
+        try:
+            response = requests.put(
+                f"{self.url}/{detection_id}/ai-verification",
+                json=result,
+                timeout=5,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as error:
+            print(f"Gagal menyimpan hasil verifikasi AI #{detection_id}: {error}")
+            return None

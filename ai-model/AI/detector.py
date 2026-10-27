@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from threading import Event, Lock, Thread
+from threading import BoundedSemaphore, Event, Lock, Thread
 
 import torch
 from api_client import APIClient
@@ -14,6 +14,7 @@ from calibration import Calibration
 from tracker import Tracker
 from image_saver import ImageSaver
 from gps import GPS
+from verification import AIObjectVerifier
 
 
 class LatestFrameReader:
@@ -108,6 +109,12 @@ class RoadDetector:
             max_workers=1,
             thread_name_prefix="detection-api",
         )
+        self.verification_executor = ThreadPoolExecutor(
+            max_workers=1,
+            thread_name_prefix="detection-verifier",
+        )
+        self.verification_slots = BoundedSemaphore(value=2)
+        self.verifier = AIObjectVerifier()
         self.confidence_threshold = float(os.getenv("DETECT_CONF", "0.4"))
         self.camera_width = int(os.getenv("CAMERA_WIDTH", "1280"))
         self.camera_height = int(os.getenv("CAMERA_HEIGHT", "720"))
@@ -227,6 +234,50 @@ class RoadDetector:
 
         return annotated_frame, detections
 
+    @staticmethod
+    def make_verification_crop(frame, bbox):
+        height, width = frame.shape[:2]
+        x1, y1, x2, y2 = bbox
+        padding_x = max(4, int((x2 - x1) * 0.1))
+        padding_y = max(4, int((y2 - y1) * 0.1))
+        x1 = max(0, x1 - padding_x)
+        y1 = max(0, y1 - padding_y)
+        x2 = min(width, x2 + padding_x)
+        y2 = min(height, y2 + padding_y)
+        if x2 <= x1 or y2 <= y1:
+            return None
+        return frame[y1:y2, x1:x2].copy()
+
+    def persist_detection_and_schedule_verification(self, detection, crop):
+        saved_detection = self.api.send_detection(detection)
+        if not isinstance(saved_detection, dict):
+            return
+
+        detection_id = saved_detection.get("detection_id")
+        if not detection_id or crop is None:
+            return
+
+        if not self.verification_slots.acquire(blocking=False):
+            print(f"Antrean verifikasi penuh, deteksi #{detection_id} menunggu operator.")
+            return
+
+        try:
+            self.verification_executor.submit(
+                self.verify_and_save_result,
+                detection_id,
+                crop,
+            )
+        except RuntimeError:
+            self.verification_slots.release()
+            print(f"Verifikasi AI dilewati untuk deteksi #{detection_id}.")
+
+    def verify_and_save_result(self, detection_id, crop):
+        try:
+            result = self.verifier.verify(crop)
+            self.api.send_ai_verification(detection_id, result)
+        finally:
+            self.verification_slots.release()
+
     def start_camera(self):
         cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -238,6 +289,7 @@ class RoadDetector:
             print("Camera is not available to the detector.")
             cap.release()
             self.api_executor.shutdown(wait=True)
+            self.verification_executor.shutdown(wait=True)
             return
 
         actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -272,7 +324,15 @@ class RoadDetector:
                             detection["label"],
                         )
                         detection["image"] = image_url
-                        self.api_executor.submit(self.api.send_detection, detection.copy())
+                        verification_crop = self.make_verification_crop(
+                            frame,
+                            detection["bbox"],
+                        )
+                        self.api_executor.submit(
+                            self.persist_detection_and_schedule_verification,
+                            detection.copy(),
+                            verification_crop,
+                        )
 
                     x1, y1, x2, y2 = detection["bbox"]
                     text = (
@@ -303,6 +363,7 @@ class RoadDetector:
         finally:
             reader.stop()
             self.api_executor.shutdown(wait=True)
+            self.verification_executor.shutdown(wait=True)
             if self.show_window:
                 cv2.destroyAllWindows()
             print(f"Frames skipped to keep preview current: {skipped_frames}")

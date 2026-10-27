@@ -1,0 +1,89 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Verifikasi Deteksi | MO-RIS{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/operator/review.css') }}" />
+{% endblock %}
+
+{% block main %}
+<div class="review-page">
+    <header class="review-header">
+        <a class="review-back" href="/operator">&larr; Kembali ke deteksi</a>
+        <p class="review-kicker">OPERATOR</p>
+        <h1>Verifikasi Deteksi</h1>
+        <p>Periksa hasil AI kedua dan foto sebelum titik lubang ditampilkan pada peta.</p>
+        <div class="review-count"><strong id="review-count">{{ detections|length }}</strong> menunggu verifikasi</div>
+    </header>
+
+    {% if database_error %}
+    <div class="review-alert" role="alert">{{ database_error }} Buka <code>migrations/001_add_detection_verification.sql</code> di database MO-RIS, lalu muat ulang halaman.</div>
+    {% elif detections %}
+    <section class="review-grid" aria-label="Deteksi yang menunggu verifikasi">
+        {% for detection in detections %}
+        <article class="review-card" data-review-id="{{ detection.id }}">
+            <div class="review-photo">
+                {% if detection.image_path %}
+                <img src="{{ url_for('static', filename=detection.image_path) }}" alt="Foto hasil deteksi #{{ detection.id }}" loading="lazy">
+                {% else %}
+                <div class="review-no-photo">Foto tidak tersedia</div>
+                {% endif %}
+                <span class="detection-id">#{{ detection.id }}</span>
+            </div>
+            <div class="review-content">
+                <div class="review-title-row">
+                    <div>
+                        <p class="review-label">Deteksi awal</p>
+                        <h2>{{ detection.label|title }} · {{ "%.1f"|format(detection.confidence or 0) }}%</h2>
+                    </div>
+                    <span class="review-pending">Perlu ditinjau</span>
+                </div>
+
+                <div class="verifier-result">
+                    <span class="verifier-icon" aria-hidden="true">AI</span>
+                    <div>
+                        <strong>Pemeriksaan AI kedua</strong>
+                        {% if detection.verifier_label %}
+                        <p>
+                            {% if detection.verifier_label == "pothole" %}Kandidat lubang
+                            {% elif detection.verifier_label == "crack" %}Kandidat retak
+                            {% elif detection.verifier_label == "unavailable" %}Model pemeriksa tidak tersedia
+                            {% else %}Belum ada hasil pasti{% endif %}
+                            {% if detection.verifier_confidence is not none %} · {{ "%.1f"|format(detection.verifier_confidence) }}%{% endif %}
+                        </p>
+                        {% else %}
+                        <p>Belum ada hasil; deteksi tetap bisa diperiksa operator.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <dl class="review-details">
+                    <div><dt>Waktu</dt><dd>{{ detection.detected_at or detection.created_at or "-" }}</dd></div>
+                    <div><dt>Koordinat</dt><dd>{% if detection.latitude is not none and detection.longitude is not none %}{{ "%.6f"|format(detection.latitude) }}, {{ "%.6f"|format(detection.longitude) }}{% else %}Tidak tersedia{% endif %}</dd></div>
+                    <div><dt>Ukuran</dt><dd>{{ "%.1f"|format(detection.length_cm or 0) }} × {{ "%.1f"|format(detection.width_cm or 0) }} cm</dd></div>
+                </dl>
+
+                <label class="review-note-label" for="review-note-{{ detection.id }}">Catatan (opsional)</label>
+                <textarea id="review-note-{{ detection.id }}" class="review-note" maxlength="500" placeholder="Contoh: bayangan, tambalan aspal, atau lokasi kurang tepat"></textarea>
+                <div class="review-actions">
+                    <button class="review-action reject" type="button" data-decision="reject">Bukan lubang</button>
+                    <button class="review-action confirm" type="button" data-decision="confirm">Konfirmasi lubang</button>
+                </div>
+                <p class="review-feedback" aria-live="polite"></p>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+    {% else %}
+    <section class="review-empty">
+        <span aria-hidden="true">✓</span>
+        <h2>Antrean verifikasi kosong</h2>
+        <p>Deteksi baru akan muncul di sini setelah kamera mengirimkannya.</p>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/operator/review.js') }}"></script>
+{% endblock %}

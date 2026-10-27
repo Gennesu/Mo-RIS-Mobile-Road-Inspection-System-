@@ -36,6 +36,16 @@ class Detection(Base):
 
     status = Column(String(30))
 
+    # Existing records stay visible as confirmed after the additive migration;
+    # the ingestion API explicitly places every new record into review.
+    verification_status = Column(
+        String(24), nullable=False, default="confirmed", server_default="confirmed"
+    )
+    verifier_label = Column(String(50))
+    verifier_confidence = Column(Float)
+    verification_note = Column(String(500))
+    verified_at = Column(TIMESTAMP)
+
     detected_at = Column(String(30))
 
     created_at = Column(TIMESTAMP)

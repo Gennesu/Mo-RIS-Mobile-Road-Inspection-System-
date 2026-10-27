@@ -19,4 +19,14 @@ class Detection(BaseModel):
 
     status: str = "Menunggu Penanganan"
 
+    verification_status: str = "pending_review"
+    verifier_label: str | None = None
+    verifier_confidence: float | None = None
+    verification_note: str | None = None
+
     detected_at: str
+
+
+class AIVerificationResult(BaseModel):
+    label: str
+    confidence: float | None = None

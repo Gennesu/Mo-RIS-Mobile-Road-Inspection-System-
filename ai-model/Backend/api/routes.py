@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
-from schemas.detection import Detection
+from schemas.detection import AIVerificationResult, Detection
 from schemas.location import DeviceLocation
 import location_store
 import crud
@@ -32,6 +32,23 @@ def add_detection(
         db,
         data.model_dump()
     )
+
+
+@router.put("/detections/{detection_id}/ai-verification")
+def update_ai_verification(
+    detection_id: int,
+    data: AIVerificationResult,
+    db: Session = Depends(get_db),
+):
+    detection = crud.update_ai_verification(
+        db,
+        detection_id,
+        data.label,
+        data.confidence,
+    )
+    if detection is None:
+        raise HTTPException(status_code=404, detail="Detection not found")
+    return detection
 
 
 @router.get("/detections")

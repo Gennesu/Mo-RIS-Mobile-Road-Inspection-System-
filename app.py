@@ -8,9 +8,13 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 import psutil
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from routes.user_route import user_bp
-from services.database import fetch_dashboard_stats
+from services.database import (
+    fetch_dashboard_stats,
+    fetch_detection_reviews,
+    update_detection_verification,
+)
 
 app = Flask(__name__)
 
@@ -59,6 +63,47 @@ def contact():
 @app.route("/operator")
 def detectpage():
     return render_template("/operator/detect-page.html")
+
+
+@app.route("/operator/review")
+def detection_review_page():
+    try:
+        detections = fetch_detection_reviews()
+        database_error = None
+    except Exception as error:
+        print(f"Gagal memuat antrean verifikasi: {error}")
+        detections = []
+        database_error = "Database belum siap atau migrasi verifikasi belum diterapkan."
+
+    return render_template(
+        "/operator/review.html",
+        detections=detections,
+        database_error=database_error,
+    )
+
+
+@app.post("/operator/review/<int:detection_id>")
+def review_detection(detection_id):
+    payload = request.get_json(silent=True) or {}
+    decision = payload.get("decision")
+    if decision not in {"confirm", "reject"}:
+        return jsonify({"ok": False, "error": "Keputusan tidak dikenal."}), 400
+
+    try:
+        updated = update_detection_verification(
+            detection_id,
+            decision,
+            payload.get("note"),
+        )
+    except Exception as error:
+        print(f"Gagal menyimpan verifikasi deteksi #{detection_id}: {error}")
+        return jsonify({"ok": False, "error": "Gagal menyimpan keputusan."}), 503
+
+    if not updated:
+        return jsonify({"ok": False, "error": "Deteksi tidak ditemukan."}), 404
+
+    verification_status = "confirmed" if decision == "confirm" else "rejected"
+    return jsonify({"ok": True, "verification_status": verification_status})
 
 
 def is_process_running(process):

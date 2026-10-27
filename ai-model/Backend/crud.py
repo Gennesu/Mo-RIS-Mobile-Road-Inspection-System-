@@ -73,6 +73,10 @@ def create_detection(db: Session, data: dict):
     print(data)
     data.pop("bbox", None)
     data["status"] = normalize_status(data.get("status"))
+    data["verification_status"] = "pending_review"
+    data["verifier_label"] = None
+    data["verifier_confidence"] = None
+    data["verification_note"] = None
 
     if data.get("latitude") is None or data.get("longitude") is None:
         latest_location = location_store.get_location()
@@ -98,6 +102,27 @@ def create_detection(db: Session, data: dict):
 
     print("detection_id:", detection.detection_id)
 
+    return detection
+
+
+def update_ai_verification(db, detection_id, label, confidence):
+    detection = (
+        db.query(Detection).filter(Detection.detection_id == detection_id).first()
+    )
+    if detection is None:
+        return None
+
+    allowed_labels = {"pothole", "crack", "unknown", "unavailable"}
+    normalized_label = str(label or "unknown").strip().lower()
+    if normalized_label not in allowed_labels:
+        normalized_label = "unknown"
+
+    detection.verifier_label = normalized_label
+    detection.verifier_confidence = (
+        max(0.0, min(100.0, float(confidence))) if confidence is not None else None
+    )
+    db.commit()
+    db.refresh(detection)
     return detection
 
 

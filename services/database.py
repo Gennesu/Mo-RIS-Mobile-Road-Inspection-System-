@@ -5,7 +5,7 @@ import mysql.connector
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "3306")),
+        port=int(os.getenv("DB_PORT", "3307")),
         user=os.getenv("DB_USER", "root"),
         password=os.getenv("DB_PASSWORD", ""),
         database=os.getenv("DB_NAME", "moris"),
@@ -37,6 +37,7 @@ def fetch_potholes():
             LEFT JOIN roads AS r ON r.road_id = d.road_id
             WHERE d.latitude IS NOT NULL
               AND d.longitude IS NOT NULL
+              AND d.verification_status = 'confirmed'
             ORDER BY d.detection_id DESC
         """)
 
@@ -113,6 +114,7 @@ def fetch_pothole_detail(detection_id):
             FROM detections AS d
             LEFT JOIN roads AS r ON r.road_id = d.road_id
             WHERE d.detection_id = %s
+              AND d.verification_status = 'confirmed'
             """,
             (detection_id,),
         )
@@ -180,7 +182,9 @@ def fetch_dashboard_stats():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        cursor.execute("SELECT status FROM detections")
+        cursor.execute(
+            "SELECT status FROM detections WHERE verification_status = 'confirmed'"
+        )
         rows = cursor.fetchall()
 
         status_counts = {"pending": 0, "processing": 0, "completed": 0}
@@ -200,6 +204,94 @@ def fetch_dashboard_stats():
             "total": total,
             **status_counts,
         }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def fetch_detection_reviews():
+    """Return detections awaiting an operator decision, newest first."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                detection_id AS id,
+                track_id,
+                label,
+                confidence,
+                length_cm,
+                width_cm,
+                image,
+                latitude,
+                longitude,
+                status,
+                verification_status,
+                verifier_label,
+                verifier_confidence,
+                verification_note,
+                detected_at,
+                created_at
+            FROM detections
+            WHERE verification_status = 'pending_review'
+            ORDER BY detection_id DESC
+            """
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            image_path = str(row.get("image") or "").replace("\\", "/").lstrip("/")
+            if image_path.lower().startswith("images/"):
+                image_path = "assets/img/potholes/" + image_path[7:]
+            elif image_path.lower().startswith("assets/potholes/"):
+                image_path = "assets/img/potholes/" + image_path[len("assets/potholes/"):]
+            elif image_path.lower().startswith("assets/cracks/"):
+                image_path = "assets/img/cracks/" + image_path[len("assets/cracks/"):]
+            row["image_path"] = image_path or None
+
+        return rows
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_detection_verification(detection_id, decision, note=None):
+    """Record an operator's decision separately from repair progress."""
+    status = {
+        "confirm": "confirmed",
+        "reject": "rejected",
+    }.get(str(decision or "").strip().lower())
+    if status is None:
+        return False
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE detections
+            SET verification_status = %s,
+                verification_note = %s,
+                verified_at = CURRENT_TIMESTAMP
+            WHERE detection_id = %s
+            """,
+            (status, str(note or "")[:500] or None, detection_id),
+        )
+        updated = cursor.rowcount > 0
+        if not updated:
+            cursor.execute(
+                "SELECT detection_id FROM detections WHERE detection_id = %s",
+                (detection_id,),
+            )
+            updated = cursor.fetchone() is not None
+        conn.commit()
+        return updated
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cursor.close()
         conn.close()

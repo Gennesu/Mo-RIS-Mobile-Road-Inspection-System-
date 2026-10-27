@@ -40,6 +40,11 @@ CREATE TABLE `detections` (
   `longitude` double DEFAULT NULL,
   `road_id` int(11) DEFAULT NULL,
   `status` enum('Menunggu Penanganan','Sedang Ditangani','Selesai Ditangani') NOT NULL DEFAULT 'Menunggu Penanganan',
+  `verification_status` varchar(24) NOT NULL DEFAULT 'confirmed',
+  `verifier_label` varchar(50) DEFAULT NULL,
+  `verifier_confidence` float DEFAULT NULL,
+  `verification_note` varchar(500) DEFAULT NULL,
+  `verified_at` timestamp NULL DEFAULT NULL,
   `detected_at` varchar(30) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -92,7 +97,8 @@ INSERT INTO `roads` (`road_id`, `name`, `length_cm`, `width_cm`, `damage_percent
 --
 ALTER TABLE `detections`
   ADD PRIMARY KEY (`detection_id`),
-  ADD KEY `idx_detections_road_id` (`road_id`);
+  ADD KEY `idx_detections_road_id` (`road_id`),
+  ADD KEY `idx_detections_verification_status` (`verification_status`);
 
 --
 -- Indexes for table `roads`
