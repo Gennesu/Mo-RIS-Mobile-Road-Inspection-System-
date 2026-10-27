@@ -57,11 +57,13 @@ async function refreshDetectionStatus() {
 
         if (status.detector_running) {
             if (window.operatorCamera) {
-                window.operatorCamera.stop();
+                await window.operatorCamera.stop();
                 window.operatorCamera.setStatus("");
             }
             showDetectionPreview();
             setDetectionControls("running");
+        } else if (window.operatorCamera) {
+            await window.operatorCamera.start();
         }
     } catch (error) {
         console.error("Gagal membaca status deteksi.", error);
@@ -127,7 +129,7 @@ async function startDetection() {
     showTransition("Menyiapkan kamera deteksi...");
 
     if (window.operatorCamera) {
-        window.operatorCamera.stop();
+        await window.operatorCamera.stop();
         window.operatorCamera.setStatus("");
     }
 
@@ -151,7 +153,7 @@ async function startDetection() {
 
         hideDetectionPreview();
         hideTransition();
-        if (window.operatorCamera) window.operatorCamera.start();
+        if (window.operatorCamera) await window.operatorCamera.start();
         setDetectionControls("idle");
     } catch (error) {
         console.error(error);
