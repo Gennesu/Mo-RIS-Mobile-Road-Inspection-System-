@@ -22,6 +22,14 @@ const confirmedEmptyMessage = document.querySelector("[data-confirmed-empty-mess
 let pendingDelete = null;
 let activeReviewTab = "pending";
 
+try {
+    const notice = window.sessionStorage.getItem("review-action-notice");
+    if (notice && actionNotice) actionNotice.textContent = notice;
+    if (notice) window.sessionStorage.removeItem("review-action-notice");
+} catch (error) {
+    // Keep the review page usable when session storage is unavailable.
+}
+
 function refreshConfirmedCounts() {
     const countIdsByStatus = {
         "Menunggu Penanganan": "confirmed-count",
@@ -108,7 +116,15 @@ reviewCards.forEach((card) => {
                 }
 
                 if (decision === "confirm") {
-                    window.location.assign("/operator/review?tab=confirmed#confirmed");
+                    try {
+                        window.sessionStorage.setItem(
+                            "review-action-notice",
+                            `Lubang #${card.dataset.reviewId} berhasil dikonfirmasi.`
+                        );
+                    } catch (error) {
+                        // The confirmation is complete even if the notice cannot be stored.
+                    }
+                    window.location.reload();
                     return;
                 }
 
@@ -151,7 +167,6 @@ document.querySelectorAll("[data-update-handling-status]").forEach((button) => {
         const feedback = card.querySelector(".handling-feedback");
         const detectionId = card.dataset.confirmedId;
         const targetStatus = button.dataset.targetStatus;
-        const nextTab = button.dataset.nextTab;
         const originalLabel = button.textContent.trim();
         button.disabled = true;
         button.textContent = "Menyimpan status...";
@@ -178,7 +193,6 @@ document.querySelectorAll("[data-update-handling-status]").forEach((button) => {
                 button.classList.add("is-complete");
                 button.textContent = "Tandai selesai ditangani";
                 button.dataset.targetStatus = "Selesai Ditangani";
-                button.dataset.nextTab = "completed";
             } else {
                 const completeLabel = document.createElement("span");
                 completeLabel.className = "handling-complete-label";
@@ -187,7 +201,7 @@ document.querySelectorAll("[data-update-handling-status]").forEach((button) => {
             }
 
             refreshConfirmedCounts();
-            activateReviewTab(nextTab);
+            filterConfirmedCards(activeReviewTab);
             if (actionNotice) {
                 actionNotice.textContent = `Status lubang #${detectionId} diperbarui menjadi ${result.status}.`;
             }

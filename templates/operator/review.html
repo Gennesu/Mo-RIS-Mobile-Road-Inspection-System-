@@ -139,9 +139,9 @@
                     {% endif %}
                     <div class="handling-actions">
                         {% if handling_status == "Menunggu Penanganan" %}
-                        <button class="handling-update-btn" type="button" data-update-handling-status data-target-status="Sedang Ditangani" data-next-tab="processing">Tandai ditangani</button>
+                        <button class="handling-update-btn" type="button" data-update-handling-status data-target-status="Sedang Ditangani">Tandai ditangani</button>
                         {% elif handling_status == "Sedang Ditangani" %}
-                        <button class="handling-update-btn is-complete" type="button" data-update-handling-status data-target-status="Selesai Ditangani" data-next-tab="completed">Tandai selesai ditangani</button>
+                        <button class="handling-update-btn is-complete" type="button" data-update-handling-status data-target-status="Selesai Ditangani">Tandai selesai ditangani</button>
                         {% else %}
                         <span class="handling-complete-label">Penanganan selesai</span>
                         {% endif %}
