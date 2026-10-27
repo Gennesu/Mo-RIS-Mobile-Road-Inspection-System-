@@ -22,14 +22,6 @@ const confirmedEmptyMessage = document.querySelector("[data-confirmed-empty-mess
 let pendingDelete = null;
 let activeReviewTab = "pending";
 
-try {
-    const statusNotice = window.sessionStorage.getItem("handling-status-notice");
-    if (statusNotice && actionNotice) actionNotice.textContent = statusNotice;
-    if (statusNotice) window.sessionStorage.removeItem("handling-status-notice");
-} catch (error) {
-    // Keep the review page usable when session storage is unavailable.
-}
-
 function refreshConfirmedCounts() {
     const countIdsByStatus = {
         "Menunggu Penanganan": "confirmed-count",
@@ -176,15 +168,29 @@ document.querySelectorAll("[data-update-handling-status]").forEach((button) => {
                 throw new Error(result.error || "Status penanganan gagal diperbarui.");
             }
 
-            try {
-                window.sessionStorage.setItem(
-                    "handling-status-notice",
-                    `Status lubang #${detectionId} diperbarui menjadi ${result.status}.`
-                );
-            } catch (error) {
-                // The status update is complete even if the notice cannot be stored.
+            card.dataset.handlingStatus = result.status;
+            const statusLabel = Array.from(card.querySelectorAll(".review-details dt"))
+                .find((term) => term.textContent.trim() === "Status penanganan")?.nextElementSibling;
+            if (statusLabel) statusLabel.textContent = result.status;
+
+            if (result.status === "Sedang Ditangani") {
+                button.disabled = false;
+                button.classList.add("is-complete");
+                button.textContent = "Tandai selesai ditangani";
+                button.dataset.targetStatus = "Selesai Ditangani";
+                button.dataset.nextTab = "completed";
+            } else {
+                const completeLabel = document.createElement("span");
+                completeLabel.className = "handling-complete-label";
+                completeLabel.textContent = "Penanganan selesai";
+                button.replaceWith(completeLabel);
             }
-            window.location.assign(`/operator/review#${nextTab}`);
+
+            refreshConfirmedCounts();
+            activateReviewTab(nextTab);
+            if (actionNotice) {
+                actionNotice.textContent = `Status lubang #${detectionId} diperbarui menjadi ${result.status}.`;
+            }
         } catch (error) {
             if (feedback) feedback.textContent = error.message || "Terjadi kesalahan.";
             button.disabled = false;
