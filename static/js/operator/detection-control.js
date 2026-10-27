@@ -89,7 +89,7 @@ function showDetectionPreview() {
     previewTimer = setInterval(function () {
         detectionCamera.src = `${previewUrl}-${previewIndex % 3}.jpg?t=${Date.now()}`;
         previewIndex += 1;
-    }, 500);
+    }, 200);
 }
 
 function hideDetectionPreview() {

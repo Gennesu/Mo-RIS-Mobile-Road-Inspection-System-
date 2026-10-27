@@ -1,8 +1,12 @@
 from ultralytics import YOLO
 import cv2
 import os
+import time
 from datetime import datetime
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+
+import torch
 from api_client import APIClient
 from measurement import Measurement
 from calibration import Calibration
@@ -14,6 +18,14 @@ from gps import GPS
 class RoadDetector:
 
     def __init__(self, model_path):
+        # Leave CPU capacity available for Flask, the browser, and the API.
+        cpu_threads = max(1, int(os.getenv("DETECT_TORCH_THREADS", "2")))
+        torch.set_num_threads(cpu_threads)
+        try:
+            torch.set_num_interop_threads(1)
+        except RuntimeError:
+            pass
+
         # Memuat model AI
         self.model = YOLO(model_path)
         self.api = APIClient()
@@ -25,14 +37,32 @@ class RoadDetector:
         self.preview_path = os.getenv("DETECTION_PREVIEW_PATH")
         self.show_window = os.getenv("SHOW_DETECT_WINDOW", "1") != "0"
         self.preview_index = 0
+        self.last_preview_at = 0.0
+        self.preview_interval = float(os.getenv("DETECTION_PREVIEW_INTERVAL", "0.2"))
+        self.preview_max_width = int(os.getenv("DETECTION_PREVIEW_WIDTH", "640"))
+        self.preview_jpeg_quality = int(os.getenv("DETECTION_PREVIEW_QUALITY", "75"))
+        self.inference_size = int(os.getenv("DETECT_IMGSZ", "512"))
+        self.api_executor = ThreadPoolExecutor(
+            max_workers=1,
+            thread_name_prefix="detection-api",
+        )
         self.confidence_threshold = float(os.getenv("DETECT_CONF", "0.4"))
         self.camera_width = int(os.getenv("CAMERA_WIDTH", "1280"))
         self.camera_height = int(os.getenv("CAMERA_HEIGHT", "720"))
-        print(f"Detector confidence threshold: {self.confidence_threshold}")
+        print(
+            "Detector settings: "
+            f"conf={self.confidence_threshold}, imgsz={self.inference_size}, "
+            f"torch_threads={cpu_threads}"
+        )
 
     def write_preview(self, frame):
         if not self.preview_path:
             return
+
+        now = time.monotonic()
+        if now - self.last_preview_at < self.preview_interval:
+            return
+        self.last_preview_at = now
 
         base_preview_path = Path(self.preview_path)
         preview_path = base_preview_path.with_name(
@@ -43,8 +73,22 @@ class RoadDetector:
         preview_path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = preview_path.with_suffix(".tmp.jpg")
 
+        height, width = frame.shape[:2]
+        preview = frame
+        if width > self.preview_max_width:
+            preview_height = round(height * self.preview_max_width / width)
+            preview = cv2.resize(
+                frame,
+                (self.preview_max_width, preview_height),
+                interpolation=cv2.INTER_AREA,
+            )
+
         try:
-            if cv2.imwrite(str(temp_path), frame):
+            if cv2.imwrite(
+                str(temp_path),
+                preview,
+                [cv2.IMWRITE_JPEG_QUALITY, self.preview_jpeg_quality],
+            ):
                 os.replace(temp_path, preview_path)
         except PermissionError:
             print(f"Preview sedang dibaca browser, frame dilewati: {preview_path}")
@@ -63,7 +107,9 @@ class RoadDetector:
             frame,
             persist=True,
             tracker="bytetrack.yaml",
-            conf=self.confidence_threshold
+            conf=self.confidence_threshold,
+            imgsz=self.inference_size,
+            verbose=False,
         )
 
         detections = []
@@ -120,6 +166,7 @@ class RoadDetector:
 
     def start_camera(self):
         cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.camera_width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.camera_height)
         cap.set(cv2.CAP_PROP_FPS, 30)
@@ -152,7 +199,7 @@ class RoadDetector:
                     if self.tracker.is_new(d["track_id"]):
                         image_url = self.image_saver.save(result_frame, d["track_id"], d["label"])
                         d["image"] = image_url
-                        self.api.send_detection(d)          
+                        self.api_executor.submit(self.api.send_detection, d.copy())
                 
             for d in detections:
                 x1, y1, x2, y2 = d["bbox"]
