@@ -96,6 +96,10 @@ class RoadDetector:
         self.preview_max_width = int(os.getenv("DETECTION_PREVIEW_WIDTH", "640"))
         self.preview_jpeg_quality = int(os.getenv("DETECTION_PREVIEW_QUALITY", "75"))
         self.inference_size = int(os.getenv("DETECT_IMGSZ", "512"))
+        self.max_inference_fps = max(0.0, float(os.getenv("DETECT_MAX_FPS", "10")))
+        self.inference_interval = (
+            1.0 / self.max_inference_fps if self.max_inference_fps > 0 else 0.0
+        )
         self.api_executor = ThreadPoolExecutor(
             max_workers=1,
             thread_name_prefix="detection-api",
@@ -106,7 +110,7 @@ class RoadDetector:
         print(
             "Detector settings: "
             f"conf={self.confidence_threshold}, imgsz={self.inference_size}, "
-            f"torch_threads={cpu_threads}"
+            f"torch_threads={cpu_threads}, max_fps={self.max_inference_fps or 'unlimited'}"
         )
 
     def write_preview(self, frame):
@@ -238,9 +242,15 @@ class RoadDetector:
         reader = LatestFrameReader(cap).start()
         last_sequence = 0
         skipped_frames = 0
+        next_inference_at = 0.0
 
         try:
             while not reader.stopped:
+                wait_time = next_inference_at - time.monotonic()
+                if wait_time > 0:
+                    time.sleep(wait_time)
+
+                inference_started_at = time.monotonic()
                 ret, frame, sequence = reader.read_latest(last_sequence)
                 if not ret:
                     continue
@@ -282,6 +292,9 @@ class RoadDetector:
                         break
                     if cv2.getWindowProperty("RoadGuard AI", cv2.WND_PROP_VISIBLE) < 1:
                         break
+
+                if self.inference_interval:
+                    next_inference_at = inference_started_at + self.inference_interval
         finally:
             reader.stop()
             self.api_executor.shutdown(wait=True)
