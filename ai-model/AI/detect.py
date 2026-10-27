@@ -1,6 +1,6 @@
 from detector import RoadDetector
 
-detector = RoadDetector("../runs/detect/PODCAST-6/weights/bestv7.pt")
+detector = RoadDetector("../bestv4.pt")
 
 detector.start_camera()
 
