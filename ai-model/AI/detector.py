@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock, Thread
 
 import torch
 from api_client import APIClient
@@ -13,6 +14,59 @@ from calibration import Calibration
 from tracker import Tracker
 from image_saver import ImageSaver
 from gps import GPS
+
+
+class LatestFrameReader:
+    """Keep only the newest camera frame so slow inference cannot build a backlog."""
+
+    def __init__(self, capture):
+        self.capture = capture
+        self.stop_event = Event()
+        self.frame_lock = Lock()
+        self.latest_frame = None
+        self.sequence = 0
+        self.thread = Thread(target=self._capture_loop, name="camera-capture", daemon=True)
+
+    @property
+    def stopped(self):
+        return self.stop_event.is_set()
+
+    def start(self):
+        self.thread.start()
+        return self
+
+    def _capture_loop(self):
+        failed_reads = 0
+        while not self.stop_event.is_set():
+            grabbed, frame = self.capture.read()
+            if not grabbed:
+                failed_reads += 1
+                if failed_reads >= 50:
+                    self.stop_event.set()
+                    break
+                self.stop_event.wait(0.02)
+                continue
+
+            failed_reads = 0
+            with self.frame_lock:
+                self.latest_frame = frame
+                self.sequence += 1
+
+    def read_latest(self, last_sequence, timeout=1.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and not self.stop_event.is_set():
+            with self.frame_lock:
+                if self.latest_frame is not None and self.sequence != last_sequence:
+                    return True, self.latest_frame.copy(), self.sequence
+            self.stop_event.wait(0.005)
+
+        return False, None, last_sequence
+
+    def stop(self):
+        self.stop_event.set()
+        self.thread.join(timeout=2)
+        self.capture.release()
+        self.thread.join(timeout=1)
 
 
 class RoadDetector:
@@ -171,63 +225,66 @@ class RoadDetector:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.camera_height)
         cap.set(cv2.CAP_PROP_FPS, 30)
 
+        if not cap.isOpened():
+            print("Camera is not available to the detector.")
+            cap.release()
+            self.api_executor.shutdown(wait=True)
+            return
+
         actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print(f"Camera capture size: {actual_width}x{actual_height}")
 
-        while True:
+        reader = LatestFrameReader(cap).start()
+        last_sequence = 0
+        skipped_frames = 0
 
-            ret, frame = cap.read()
+        try:
+            while not reader.stopped:
+                ret, frame, sequence = reader.read_latest(last_sequence)
+                if not ret:
+                    continue
 
-            if not ret:
-                break
+                skipped_frames += max(0, sequence - last_sequence - 1)
+                last_sequence = sequence
+                result_frame, detections = self.detect_frame(frame)
 
-            result_frame, detections = self.detect_frame(frame)
+                for detection in detections:
+                    if detection["track_id"] != -1 and self.tracker.is_new(detection["track_id"]):
+                        image_url = self.image_saver.save(
+                            result_frame,
+                            detection["track_id"],
+                            detection["label"],
+                        )
+                        detection["image"] = image_url
+                        self.api_executor.submit(self.api.send_detection, detection.copy())
 
-            # Cetak hasil ke terminal
-            for d in detections:
-                
-                print("=" * 40)
-                print("Jenis       :", d["label"])
-                print("Confidence  :", d["confidence"], "%")
-                print("BBox        :", d["bbox"])
-                print("Panjang     :", d["length_cm"], "cm")
-                print("Lebar       :", d["width_cm"], "cm")
-                print("Tanggal     :", d["detected_at"])
-                
-                if d["track_id"] != -1:
-                    if self.tracker.is_new(d["track_id"]):
-                        image_url = self.image_saver.save(result_frame, d["track_id"], d["label"])
-                        d["image"] = image_url
-                        self.api_executor.submit(self.api.send_detection, d.copy())
-                
-            for d in detections:
-                x1, y1, x2, y2 = d["bbox"]
-                text = (
-                    f"P:{d['length_cm']}cm "
-                    f"L:{d['width_cm']}cm"
+                    x1, y1, x2, y2 = detection["bbox"]
+                    text = (
+                        f"P:{detection['length_cm']}cm "
+                        f"L:{detection['width_cm']}cm"
+                    )
+                    cv2.putText(
+                        result_frame,
+                        text,
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 255, 255),
+                        2,
                     )
 
-                cv2.putText(
-                result_frame,
-                text,
-                (x1, y1 - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (0, 255, 255),
-                2
-            )
-            self.write_preview(result_frame)
+                self.write_preview(result_frame)
 
+                if self.show_window:
+                    cv2.imshow("RoadGuard AI", result_frame)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
+                    if cv2.getWindowProperty("RoadGuard AI", cv2.WND_PROP_VISIBLE) < 1:
+                        break
+        finally:
+            reader.stop()
+            self.api_executor.shutdown(wait=True)
             if self.show_window:
-                cv2.imshow("RoadGuard AI", result_frame)
-
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-
-                if cv2.getWindowProperty("RoadGuard AI", cv2.WND_PROP_VISIBLE) < 1:
-                    break
-
-        cap.release()
-        if self.show_window:
-            cv2.destroyAllWindows()
+                cv2.destroyAllWindows()
+            print(f"Frames skipped to keep preview current: {skipped_frames}")
