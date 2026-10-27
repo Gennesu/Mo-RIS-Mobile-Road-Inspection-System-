@@ -44,6 +44,7 @@
 
 .review-tabs {
     display: flex;
+    flex-wrap: wrap;
     width: min(1180px, 100%);
     gap: 8px;
     margin: 0 auto 20px;
@@ -54,6 +55,7 @@
 }
 .review-tab {
     display: inline-flex;
+    flex: 1 1 155px;
     min-height: 42px;
     justify-content: center;
     align-items: center;
@@ -90,6 +92,7 @@
 .review-tab.is-active span { color: #1a1306; background: #ffcf67; }
 .review-tab:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .review-panel[hidden] { display: none; }
+.review-grid[hidden], .confirmed-card[hidden], .confirmed-empty[hidden] { display: none; }
 .review-delete-notice { width: min(1180px, 100%); min-height: 1.2em; margin: -9px auto 12px; color: #a8f0d4; font-size: .86rem; }
 
 .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 470px), 1fr)); gap: 18px; }

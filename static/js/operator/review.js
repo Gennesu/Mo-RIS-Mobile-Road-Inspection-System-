@@ -1,33 +1,90 @@
 const reviewCards = document.querySelectorAll("[data-review-id]");
 const reviewCount = document.getElementById("review-count");
 const pendingTabCount = document.querySelector('[data-review-tab="pending"] span');
-const confirmedCount = document.getElementById("confirmed-count");
 const deleteNotice = document.getElementById("review-delete-notice");
 const deleteDialog = document.getElementById("delete-confirm-dialog");
 const deleteDialogTitle = document.getElementById("delete-confirm-title");
 const confirmDeleteButton = document.querySelector("[data-confirm-delete]");
+const confirmedStatusByTab = {
+    confirmed: "Menunggu Penanganan",
+    processing: "Sedang Ditangani",
+    completed: "Selesai Ditangani",
+};
+const confirmedEmptyCopy = {
+    confirmed: ["Belum ada lubang terkonfirmasi", "Lubang terkonfirmasi yang menunggu penanganan akan muncul di sini."],
+    processing: ["Belum ada lubang yang ditangani", "Lubang yang sedang ditangani akan muncul di sini."],
+    completed: ["Belum ada lubang yang selesai ditangani", "Lubang yang sudah selesai ditangani akan muncul di sini."],
+};
+const confirmedGrid = document.querySelector('[data-review-panel="confirmed"] .review-grid');
+const confirmedEmpty = document.querySelector("[data-confirmed-empty]");
+const confirmedEmptyTitle = document.querySelector("[data-confirmed-empty-title]");
+const confirmedEmptyMessage = document.querySelector("[data-confirmed-empty-message]");
 let pendingDelete = null;
+let activeReviewTab = "pending";
+
+function refreshConfirmedCounts() {
+    const countIdsByStatus = {
+        "Menunggu Penanganan": "confirmed-count",
+        "Sedang Ditangani": "processing-count",
+        "Selesai Ditangani": "completed-count",
+    };
+
+    Object.entries(countIdsByStatus).forEach(([status, countId]) => {
+        const count = Array.from(document.querySelectorAll("[data-confirmed-id]"))
+            .filter((card) => card.dataset.handlingStatus === status).length;
+        const countElement = document.getElementById(countId);
+        if (countElement) countElement.textContent = String(count);
+    });
+}
+
+function filterConfirmedCards(tabName) {
+    const status = confirmedStatusByTab[tabName];
+    if (!status) return;
+
+    let visibleCount = 0;
+    document.querySelectorAll("[data-confirmed-id]").forEach((card) => {
+        const visible = card.dataset.handlingStatus === status;
+        card.hidden = !visible;
+        if (visible) visibleCount += 1;
+    });
+
+    if (confirmedGrid) confirmedGrid.hidden = visibleCount === 0;
+    if (confirmedEmpty) confirmedEmpty.hidden = visibleCount > 0;
+    if (confirmedEmptyTitle && confirmedEmptyCopy[tabName]) {
+        confirmedEmptyTitle.textContent = confirmedEmptyCopy[tabName][0];
+    }
+    if (confirmedEmptyMessage && confirmedEmptyCopy[tabName]) {
+        confirmedEmptyMessage.textContent = confirmedEmptyCopy[tabName][1];
+    }
+}
 
 function activateReviewTab(name, updateLocation = true) {
+    activeReviewTab = name;
     document.querySelectorAll("[data-review-tab]").forEach((tab) => {
         const active = tab.dataset.reviewTab === name;
         tab.classList.toggle("is-active", active);
         tab.setAttribute("aria-selected", String(active));
     });
+    const activeTab = document.querySelector(`[data-review-tab="${name}"]`);
     document.querySelectorAll("[data-review-panel]").forEach((panel) => {
-        const active = panel.dataset.reviewPanel === name;
+        const active = panel.dataset.reviewPanel === (name === "pending" ? "pending" : "confirmed");
         panel.classList.toggle("is-active", active);
         panel.hidden = !active;
+        if (active && panel.dataset.reviewPanel === "confirmed" && activeTab) {
+            panel.setAttribute("aria-labelledby", activeTab.id);
+        }
     });
+    filterConfirmedCards(name);
     if (updateLocation) {
-        window.history.replaceState(null, "", name === "confirmed" ? "#confirmed" : window.location.pathname);
+        window.history.replaceState(null, "", name === "pending" ? window.location.pathname : `#${name}`);
     }
 }
 
 document.querySelectorAll("[data-review-tab]").forEach((tab) => {
     tab.addEventListener("click", () => activateReviewTab(tab.dataset.reviewTab));
 });
-activateReviewTab(window.location.hash === "#confirmed" ? "confirmed" : "pending", false);
+const requestedTab = window.location.hash.slice(1);
+activateReviewTab(confirmedStatusByTab[requestedTab] ? requestedTab : "pending", false);
 
 reviewCards.forEach((card) => {
     card.querySelectorAll("[data-decision]").forEach((button) => {
@@ -118,21 +175,17 @@ confirmDeleteButton?.addEventListener("click", async () => {
         }
 
         card.remove();
-        const remaining = document.querySelectorAll("[data-confirmed-id]").length;
-        if (confirmedCount) confirmedCount.textContent = String(remaining);
+        refreshConfirmedCounts();
         if (deleteNotice) {
             deleteNotice.textContent = result.image_removed
                 ? `Lubang #${detectionId} dan foto terkait berhasil dihapus.`
                 : `Data lubang #${detectionId} dihapus; foto terkait tidak ditemukan.`;
         }
 
-        if (remaining === 0) {
-            const grid = document.querySelector('[data-review-panel="confirmed"] .review-grid');
-            if (grid) {
-                grid.outerHTML = '<div class="review-empty"><h2>Belum ada lubang terkonfirmasi</h2><p>Lubang yang dikonfirmasi operator akan muncul di sini.</p></div>';
-            }
-        }
-        document.querySelector("[data-delete-confirmed]")?.focus();
+        filterConfirmedCards(activeReviewTab);
+        const nextDeleteButton = Array.from(document.querySelectorAll("[data-confirmed-id]"))
+            .find((item) => !item.hidden)?.querySelector("[data-delete-confirmed]");
+        (nextDeleteButton || document.querySelector(`[data-review-tab="${activeReviewTab}"]`))?.focus();
     } catch (error) {
         if (feedback) feedback.textContent = error.message || "Terjadi kesalahan.";
         button.disabled = false;

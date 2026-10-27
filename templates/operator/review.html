@@ -19,17 +19,26 @@
     {% if database_error %}
     <div class="review-alert" role="alert">{{ database_error }} Buka <code>migrations/001_add_detection_verification.sql</code> di database MO-RIS, lalu muat ulang halaman.</div>
     {% else %}
+    {% set waiting_count = confirmed_detections|selectattr('status', 'equalto', 'Menunggu Penanganan')|list|length %}
+    {% set processing_count = confirmed_detections|selectattr('status', 'equalto', 'Sedang Ditangani')|list|length %}
+    {% set completed_count = confirmed_detections|selectattr('status', 'equalto', 'Selesai Ditangani')|list|length %}
     <div class="review-tabs" role="tablist" aria-label="Status deteksi">
-        <button class="review-tab is-active" type="button" role="tab" aria-selected="true" data-review-tab="pending">
+        <button class="review-tab is-active" id="review-tab-pending" type="button" role="tab" aria-selected="true" aria-controls="review-panel-pending" data-review-tab="pending">
             Perlu ditinjau <span>{{ detections|length }}</span>
         </button>
-        <button class="review-tab" type="button" role="tab" aria-selected="false" data-review-tab="confirmed">
-            Terkonfirmasi <span id="confirmed-count">{{ confirmed_detections|length }}</span>
+        <button class="review-tab" id="review-tab-confirmed" type="button" role="tab" aria-selected="false" aria-controls="review-panel-confirmed" data-review-tab="confirmed">
+            Terkonfirmasi <span id="confirmed-count">{{ waiting_count }}</span>
+        </button>
+        <button class="review-tab" id="review-tab-processing" type="button" role="tab" aria-selected="false" aria-controls="review-panel-confirmed" data-review-tab="processing">
+            Ditangani <span id="processing-count">{{ processing_count }}</span>
+        </button>
+        <button class="review-tab" id="review-tab-completed" type="button" role="tab" aria-selected="false" aria-controls="review-panel-confirmed" data-review-tab="completed">
+            Selesai ditangani <span id="completed-count">{{ completed_count }}</span>
         </button>
     </div>
     <p id="review-delete-notice" class="review-delete-notice" role="status" aria-live="polite"></p>
 
-    <section class="review-panel is-active" role="tabpanel" data-review-panel="pending">
+    <section class="review-panel is-active" id="review-panel-pending" role="tabpanel" aria-labelledby="review-tab-pending" data-review-panel="pending">
         {% if detections %}
         <div class="review-grid" aria-label="Deteksi yang menunggu verifikasi">
             {% for detection in detections %}
@@ -98,11 +107,10 @@
         {% endif %}
     </section>
 
-    <section class="review-panel" role="tabpanel" data-review-panel="confirmed" hidden>
-        {% if confirmed_detections %}
+    <section class="review-panel" id="review-panel-confirmed" role="tabpanel" aria-labelledby="review-tab-confirmed" data-review-panel="confirmed" hidden>
         <div class="review-grid" aria-label="Lubang yang sudah dikonfirmasi">
             {% for detection in confirmed_detections %}
-            <article class="review-card confirmed-card" data-confirmed-id="{{ detection.id }}">
+            <article class="review-card confirmed-card" data-confirmed-id="{{ detection.id }}" data-handling-status="{{ detection.status or 'Menunggu Penanganan' }}">
                 <div class="review-photo">
                     {% if detection.image_path %}
                     <img src="{{ url_for('static', filename=detection.image_path) }}" alt="Foto lubang terkonfirmasi #{{ detection.id }}" loading="lazy">
@@ -136,12 +144,10 @@
             </article>
             {% endfor %}
         </div>
-        {% else %}
-        <div class="review-empty">
-            <h2>Belum ada lubang terkonfirmasi</h2>
-            <p>Lubang yang dikonfirmasi operator akan muncul di sini.</p>
+        <div class="review-empty confirmed-empty" data-confirmed-empty hidden>
+            <h2 data-confirmed-empty-title></h2>
+            <p data-confirmed-empty-message></p>
         </div>
-        {% endif %}
     </section>
     {% endif %}
 </div>
