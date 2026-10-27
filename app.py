@@ -16,6 +16,7 @@ from services.database import (
     fetch_detection_reviews,
     fetch_confirmed_detections,
     delete_confirmed_detection,
+    update_detection_handling_status,
     update_detection_verification,
 )
 
@@ -54,6 +55,15 @@ def landing():
     return render_template(
         "/landing/index.html", active_page="home", dashboard_stats=dashboard_stats
     )
+
+
+@app.get("/dashboard/stats")
+def dashboard_stats_api():
+    try:
+        return jsonify(fetch_dashboard_stats())
+    except Exception as error:
+        print(f"Gagal memuat statistik dashboard: {error}")
+        return jsonify({"error": "Statistik dashboard sementara tidak tersedia."}), 503
 
 @app.route("/about")
 def about():
@@ -126,6 +136,29 @@ def delete_confirmed_pothole(detection_id):
         return jsonify({"ok": False, "error": "Hanya lubang terkonfirmasi yang dapat dihapus."}), 409
 
     return jsonify({"ok": True, "image_removed": result["image_removed"]})
+
+
+@app.post("/operator/confirmed/<int:detection_id>/handling-status")
+def update_confirmed_handling_status(detection_id):
+    payload = request.get_json(silent=True) or {}
+    target_status = payload.get("status")
+    if target_status not in {"Sedang Ditangani", "Selesai Ditangani"}:
+        return jsonify({"ok": False, "error": "Status penanganan tidak dikenal."}), 400
+
+    try:
+        result = update_detection_handling_status(detection_id, target_status)
+    except Exception as error:
+        print(f"Gagal memperbarui status penanganan #{detection_id}: {error}")
+        return jsonify({"ok": False, "error": "Gagal memperbarui status penanganan."}), 503
+
+    if not result["updated"]:
+        if result["reason"] == "not_found":
+            return jsonify({"ok": False, "error": "Data lubang tidak ditemukan."}), 404
+        if result["reason"] == "not_confirmed":
+            return jsonify({"ok": False, "error": "Hanya lubang terkonfirmasi yang dapat diperbarui."}), 409
+        return jsonify({"ok": False, "error": "Status lubang sudah berubah. Muat ulang halaman."}), 409
+
+    return jsonify({"ok": True, "status": result["status"]})
 
 
 @app.get("/operator/detection-feed")

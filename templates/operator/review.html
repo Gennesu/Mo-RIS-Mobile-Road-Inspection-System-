@@ -36,7 +36,7 @@
             Selesai ditangani <span id="completed-count">{{ completed_count }}</span>
         </button>
     </div>
-    <p id="review-delete-notice" class="review-delete-notice" role="status" aria-live="polite"></p>
+    <p id="review-action-notice" class="review-delete-notice" role="status" aria-live="polite"></p>
 
     <section class="review-panel is-active" id="review-panel-pending" role="tabpanel" aria-labelledby="review-tab-pending" data-review-panel="pending">
         {% if detections %}
@@ -110,7 +110,8 @@
     <section class="review-panel" id="review-panel-confirmed" role="tabpanel" aria-labelledby="review-tab-confirmed" data-review-panel="confirmed" hidden>
         <div class="review-grid" aria-label="Lubang yang sudah dikonfirmasi">
             {% for detection in confirmed_detections %}
-            <article class="review-card confirmed-card" data-confirmed-id="{{ detection.id }}" data-handling-status="{{ detection.status or 'Menunggu Penanganan' }}">
+            {% set handling_status = detection.status or 'Menunggu Penanganan' %}
+            <article class="review-card confirmed-card" data-confirmed-id="{{ detection.id }}" data-handling-status="{{ handling_status }}">
                 <div class="review-photo">
                     {% if detection.image_path %}
                     <img src="{{ url_for('static', filename=detection.image_path) }}" alt="Foto lubang terkonfirmasi #{{ detection.id }}" loading="lazy">
@@ -136,6 +137,16 @@
                     {% if detection.verification_note %}
                     <p class="confirmed-note">Catatan verifikasi: {{ detection.verification_note }}</p>
                     {% endif %}
+                    <div class="handling-actions">
+                        {% if handling_status == "Menunggu Penanganan" %}
+                        <button class="handling-update-btn" type="button" data-update-handling-status data-target-status="Sedang Ditangani" data-next-tab="processing">Tandai ditangani</button>
+                        {% elif handling_status == "Sedang Ditangani" %}
+                        <button class="handling-update-btn is-complete" type="button" data-update-handling-status data-target-status="Selesai Ditangani" data-next-tab="completed">Tandai selesai ditangani</button>
+                        {% else %}
+                        <span class="handling-complete-label">Penanganan selesai</span>
+                        {% endif %}
+                        <p class="handling-feedback" aria-live="polite"></p>
+                    </div>
                     <div class="confirmed-actions">
                         <button class="delete-confirmed-btn" type="button" data-delete-confirmed>Hapus lubang</button>
                         <p class="delete-feedback" aria-live="polite"></p>

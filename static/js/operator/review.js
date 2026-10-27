@@ -1,7 +1,7 @@
 const reviewCards = document.querySelectorAll("[data-review-id]");
 const reviewCount = document.getElementById("review-count");
 const pendingTabCount = document.querySelector('[data-review-tab="pending"] span');
-const deleteNotice = document.getElementById("review-delete-notice");
+const actionNotice = document.getElementById("review-action-notice");
 const deleteDialog = document.getElementById("delete-confirm-dialog");
 const deleteDialogTitle = document.getElementById("delete-confirm-title");
 const confirmDeleteButton = document.querySelector("[data-confirm-delete]");
@@ -21,6 +21,14 @@ const confirmedEmptyTitle = document.querySelector("[data-confirmed-empty-title]
 const confirmedEmptyMessage = document.querySelector("[data-confirmed-empty-message]");
 let pendingDelete = null;
 let activeReviewTab = "pending";
+
+try {
+    const statusNotice = window.sessionStorage.getItem("handling-status-notice");
+    if (statusNotice && actionNotice) actionNotice.textContent = statusNotice;
+    if (statusNotice) window.sessionStorage.removeItem("handling-status-notice");
+} catch (error) {
+    // Keep the review page usable when session storage is unavailable.
+}
 
 function refreshConfirmedCounts() {
     const countIdsByStatus = {
@@ -143,6 +151,48 @@ document.querySelectorAll("[data-delete-confirmed]").forEach((button) => {
     });
 });
 
+document.querySelectorAll("[data-update-handling-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+        const card = button.closest("[data-confirmed-id]");
+        if (!card) return;
+
+        const feedback = card.querySelector(".handling-feedback");
+        const detectionId = card.dataset.confirmedId;
+        const targetStatus = button.dataset.targetStatus;
+        const nextTab = button.dataset.nextTab;
+        const originalLabel = button.textContent.trim();
+        button.disabled = true;
+        button.textContent = "Menyimpan status...";
+        if (feedback) feedback.textContent = "";
+
+        try {
+            const response = await fetch(`/operator/confirmed/${detectionId}/handling-status`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: targetStatus }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.error || "Status penanganan gagal diperbarui.");
+            }
+
+            try {
+                window.sessionStorage.setItem(
+                    "handling-status-notice",
+                    `Status lubang #${detectionId} diperbarui menjadi ${result.status}.`
+                );
+            } catch (error) {
+                // The status update is complete even if the notice cannot be stored.
+            }
+            window.location.assign(`/operator/review#${nextTab}`);
+        } catch (error) {
+            if (feedback) feedback.textContent = error.message || "Terjadi kesalahan.";
+            button.disabled = false;
+            button.textContent = originalLabel;
+        }
+    });
+});
+
 document.querySelector("[data-cancel-delete]")?.addEventListener("click", () => {
     if (deleteDialog?.open) deleteDialog.close("cancel");
 });
@@ -161,7 +211,7 @@ confirmDeleteButton?.addEventListener("click", async () => {
     const feedback = card.querySelector(".delete-feedback");
     button.disabled = true;
     if (feedback) feedback.textContent = "Menghapus data lubang...";
-    if (deleteNotice) deleteNotice.textContent = "";
+    if (actionNotice) actionNotice.textContent = "";
 
     try {
         const response = await fetch(`/operator/confirmed/${detectionId}/delete`, {
@@ -176,8 +226,8 @@ confirmDeleteButton?.addEventListener("click", async () => {
 
         card.remove();
         refreshConfirmedCounts();
-        if (deleteNotice) {
-            deleteNotice.textContent = result.image_removed
+        if (actionNotice) {
+            actionNotice.textContent = result.image_removed
                 ? `Lubang #${detectionId} dan foto terkait berhasil dihapus.`
                 : `Data lubang #${detectionId} dihapus; foto terkait tidak ditemukan.`;
         }

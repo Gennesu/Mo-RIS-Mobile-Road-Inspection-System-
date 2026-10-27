@@ -185,26 +185,22 @@ def fetch_dashboard_stats():
 
     try:
         cursor.execute(
-            "SELECT status FROM detections WHERE verification_status = 'confirmed'"
+            """
+            SELECT
+                COUNT(*) AS total,
+                COALESCE(SUM(status = 'Menunggu Penanganan'), 0) AS pending,
+                COALESCE(SUM(status = 'Sedang Ditangani'), 0) AS processing,
+                COALESCE(SUM(status = 'Selesai Ditangani'), 0) AS completed
+            FROM detections
+            WHERE verification_status = 'confirmed'
+            """
         )
-        rows = cursor.fetchall()
-
-        status_counts = {"pending": 0, "processing": 0, "completed": 0}
-
-        for row in rows:
-            status = row.get("status") or "Menunggu Penanganan"
-            status_key = {
-                "Menunggu Penanganan": "pending",
-                "Sedang Ditangani": "processing",
-                "Selesai Ditangani": "completed",
-            }.get(status)
-            if status_key:
-                status_counts[status_key] += 1
-
-        total = len(rows)
+        row = cursor.fetchone() or {}
         return {
-            "total": total,
-            **status_counts,
+            "total": int(row.get("total") or 0),
+            "pending": int(row.get("pending") or 0),
+            "processing": int(row.get("processing") or 0),
+            "completed": int(row.get("completed") or 0),
         }
     finally:
         cursor.close()
@@ -381,6 +377,71 @@ def delete_confirmed_detection(detection_id):
             print(f"Gagal menghapus gambar {image_path.name}: {error}")
 
     return {"deleted": True, "image_removed": image_removed}
+
+
+def update_detection_handling_status(detection_id, target_status):
+    """Advance a confirmed pothole from waiting to in-progress or completed."""
+    expected_status = {
+        "Sedang Ditangani": "Menunggu Penanganan",
+        "Selesai Ditangani": "Sedang Ditangani",
+    }.get(target_status)
+    if expected_status is None:
+        return {"updated": False, "reason": "invalid_target"}
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT label, verification_status, status
+            FROM detections
+            WHERE detection_id = %s
+            FOR UPDATE
+            """,
+            (detection_id,),
+        )
+        detection = cursor.fetchone()
+        if detection is None:
+            conn.rollback()
+            return {"updated": False, "reason": "not_found"}
+        if (
+            detection.get("label") != "pothole"
+            or detection.get("verification_status") != "confirmed"
+        ):
+            conn.rollback()
+            return {"updated": False, "reason": "not_confirmed"}
+        if detection.get("status") != expected_status:
+            conn.rollback()
+            return {
+                "updated": False,
+                "reason": "invalid_transition",
+                "current_status": detection.get("status"),
+            }
+
+        cursor.execute(
+            """
+            UPDATE detections
+            SET status = %s
+            WHERE detection_id = %s
+              AND label = 'pothole'
+              AND verification_status = 'confirmed'
+              AND status = %s
+            """,
+            (target_status, detection_id, expected_status),
+        )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return {"updated": False, "reason": "invalid_transition"}
+
+        conn.commit()
+        return {"updated": True, "status": target_status}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def fetch_operator_detection_feed(after_id=0, limit=6):

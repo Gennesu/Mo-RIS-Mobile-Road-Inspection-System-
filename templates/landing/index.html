@@ -56,7 +56,7 @@
         <div class="statistics-cards">
             <article class="stat-card stat-total">
                 <span class="stat-label">Total Deteksi</span>
-                <strong>{{ "{:,}".format(dashboard_stats.total).replace(",", ".") }}</strong>
+                <strong data-dashboard-stat="total">{{ "{:,}".format(dashboard_stats.total).replace(",", ".") }}</strong>
                 <span class="stat-description">Kerusakan terdeteksi<br>di seluruh wilayah</span>
                 <span class="stat-icon" aria-hidden="true"
                     style="--stat-icon: url('/static/assets/icons/stat-total.svg')"></span>
@@ -64,7 +64,7 @@
 
             <article class="stat-card stat-pending">
                 <span class="stat-label">Menunggu Penanganan</span>
-                <strong>{{ "{:,}".format(dashboard_stats.pending).replace(",", ".") }}</strong>
+                <strong data-dashboard-stat="pending">{{ "{:,}".format(dashboard_stats.pending).replace(",", ".") }}</strong>
                 <span class="stat-description">Perlu segera<br>ditindaklanjuti</span>
                 <span class="stat-icon" aria-hidden="true"
                     style="--stat-icon: url('/static/assets/icons/stat-pending.svg')"></span>
@@ -72,7 +72,7 @@
 
             <article class="stat-card stat-processing">
                 <span class="stat-label">Sedang Ditangani</span>
-                <strong>{{ "{:,}".format(dashboard_stats.processing).replace(",", ".") }}</strong>
+                <strong data-dashboard-stat="processing">{{ "{:,}".format(dashboard_stats.processing).replace(",", ".") }}</strong>
                 <span class="stat-description">Dalam proses<br>perbaikan</span>
                 <span class="stat-icon" aria-hidden="true"
                     style="--stat-icon: url('/static/assets/icons/stat-processing.svg')"></span>
@@ -80,7 +80,7 @@
 
             <article class="stat-card stat-completed">
                 <span class="stat-label">Selesai Ditangani</span>
-                <strong>{{ "{:,}".format(dashboard_stats.completed).replace(",", ".") }}</strong>
+                <strong data-dashboard-stat="completed">{{ "{:,}".format(dashboard_stats.completed).replace(",", ".") }}</strong>
                 <span class="stat-description">Telah<br>diperbaiki</span>
                 <span class="stat-icon" aria-hidden="true"
                     style="--stat-icon: url('/static/assets/icons/stat-completed.svg')"></span>
