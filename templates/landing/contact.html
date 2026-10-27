@@ -1,0 +1,18 @@
+{% extends "layout/base.html" %}
+
+{% block title %} Contact {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing-navbar.css') }}" />
+{% endblock %}
+
+{% block header %}
+{% include "layout/landing-navbar.html" %}
+{% endblock %}
+
+{% block content %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

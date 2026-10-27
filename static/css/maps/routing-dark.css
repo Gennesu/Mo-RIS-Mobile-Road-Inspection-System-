@@ -1,0 +1,72 @@
+/* Stronger dark theme overrides for Leaflet Routing Machine */
+
+.leaflet-routing-container,
+.leaflet-routing-container * {
+    color: #e6eef8 !important;
+    font-family: inherit !important;
+}
+
+.leaflet-routing-container {
+    /* match floating-panel container */
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 24px !important;
+    padding: 8px !important;
+}
+
+.leaflet-routing-container .leaflet-routing-geocoder,
+.leaflet-routing-container .leaflet-routing-waypoint,
+.leaflet-routing-container .leaflet-routing-summary,
+.leaflet-routing-container .leaflet-routing-instruction {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: var(--text-dark) !important;
+    border-radius: 16px !important;
+    padding: 8px !important;
+}
+
+.leaflet-routing-container input[type="text"] {
+    background: transparent !important;
+    color: var(--text-dark) !important;
+    border: none !important;
+}
+
+.leaflet-routing-container .leaflet-routing-instruction {
+    color: var(--text-dark) !important;
+}
+
+.leaflet-routing-container .leaflet-routing-summary {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: var(--text-dark) !important;
+}
+
+.leaflet-routing-container .leaflet-routing-alt {
+    color: #fd884b !important;
+    /* use severity-orange accent */
+}
+
+.leaflet-routing-container a,
+.leaflet-routing-container button {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: var(--text-dark) !important;
+    border: none !important;
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+}
+
+.leaflet-routing-error {
+    background: #2b0d0d !important;
+    color: #ffd1d1 !important;
+}
+
+.leaflet-routing-container.leaflet-control {
+    z-index: 1200 !important;
+}
+
+.leaflet-routing-alt-row:hover,.leaflet-routing-alt td:hover,
+.leaflet-routing-alt td:hover, .leaflet-routing-instruction-distance:hover,
+.leaflet-routing-alt h2:hover, .leaflet-routing-alt h3:hover {
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: var(--text-dark) !important;
+    transition: background 0.25s, color 0.25s;
+}

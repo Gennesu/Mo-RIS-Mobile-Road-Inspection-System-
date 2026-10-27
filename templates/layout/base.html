@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mo-RIS{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}" />
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <header>{% block header %}{% endblock %}</header>
+    <main>{% block main %}{% endblock %}</main>
+    <aside>{% block aside %}{% endblock %}</aside>
+    <footer>{% block footer %}{% endblock %}</footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Admin - SIKS</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav_btn.css') }}" />
+
+</head>
+
+<body>
+    <div class="bg"></div>
+    <header>
+        <div class="navbar">
+            <div class="logo"><a href="/">SIKS</a></div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="cont-peta">
+            <div class="peta" id="map"> </div>
+
+            <div class="floating-ui">
+                <div id="search-grid">
+                    <h3>Cari Grid</h3>
+
+                    <input type="text" id="search-input" placeholder="Masukkan ID Grid" />
+
+                    <button id="search-btn" class="btn-sm btn-primary">
+                        Cari
+                    </button>
+                </div>
+
+                <div id="info-panel">
+                    <h3>Grid</h3>
+
+                    <div class="grid-info">
+                        <p id="grid-id">
+                            Belum ada grid dipilih
+                        </p>
+
+                        <button id="copy-grid-id" type="button">
+                            📋
+                        </button>
+                    </div>
+
+                    <select id="status">
+                        <option value="">-- Pilih --</option>
+                        <option value="tersedia">Tersedia</option>
+                        <option value="tidak_tersedia">Tidak Tersedia</option>
+                    </select>
+
+                    <button id="save-grid" class="btn-sm btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/mapV0.1.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+
+</html>

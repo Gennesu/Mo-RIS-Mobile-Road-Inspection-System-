@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Dashboard</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav_btn.css') }}" />
+</head>
+
+<body>
+    <div class="bg"></div>
+    <header>
+        <div class="navbar">
+            <div class="logo"><a href="/">SIKS</a></div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+
+            <div class="nav-links">
+                <a href="{{url_for('admin')}}">Features</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="cont">
+        <section class="hero">
+            <h1>Kategorikan Sampah Anda</h1>
+            <p>
+                Sistem Kelola Sampah (SIKS) adalah sistem yang akan membantu anda mengelola tempat sampah
+            </p>
+        </section>
+
+        <div class="penjelasan">
+            <div class="penjelasan-card">
+                <h3>Organik</h3>
+                <p>
+                    Limbah yang berasal dari sisa makhluk hidup (tumbuhan, hewan, dan manusia) yang mudah terurai secara
+                    alami.
+                </p>
+            </div>
+            <div class="penjelasan-card">
+                <h3>Anorganik</h3>
+                <p>
+                    Limbah yang berasal dari bahan-bahan non-hayati (bukan makhluk hidup) dan biasanya sulit terurai
+                    secara alami.
+                </p>
+            </div>
+            <div class="penjelasan-card">
+                <h3>Limbah B3</h3>
+                <p>
+                    Limbah yang mengandung bahan berbahaya atau beracun yang dapat membahayakan makhluk hidup atau
+                    lingkungan jika tidak ditangani dengan benar.
+                <p>
+            </div>
+            <div class="penjelasan-card">
+                <h3>Residu</h3>
+                <p>
+                    Limbah yang tidak termasuk ke dalam kategori sebelumnya dan biasanya sulit diolah kembali.
+                </p>
+            </div>
+        </div>
+
+        <div class="sign-buttons">
+            <a href="{{url_for('signin')}}" class="btn btn-primary">Masuk →</a>
+            <a href="{{url_for('signup')}}" class="btn btn-secondary">Daftar</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+
+</html>

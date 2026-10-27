@@ -1,0 +1,108 @@
+{% extends "layout/base.html" %}
+
+{% block title %} Detect Console {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/operator/detect-page.css') }}" />
+{% endblock %}
+
+{% block main %}
+<div class="detect-page">
+    <a class="floating-back" href="/" aria-label="Kembali ke halaman utama">
+        <span aria-hidden="true">&lt;</span>
+        Back
+    </a>
+
+    <section class="workspace-grid">
+        <div class="left-column">
+            <article class="panel camera-panel">
+                <div class="camera-frame">
+                    <video id="live-camera" autoplay muted playsinline></video>
+                    <img id="detection-camera" class="detection-camera" alt="Hasil deteksi kamera">
+                    <div id="camera-transition" class="camera-transition" aria-hidden="true">
+                        <span></span>
+                    </div>
+                    <div id="camera-status" class="camera-status" role="status" aria-live="polite"></div>
+                    <div class="scan-line" aria-hidden="true"></div>
+
+                    <div class="time">
+                        <strong id="clock">--:--:--</strong>
+                    </div>
+                </div>
+            </article>
+
+            <article class="panel current-panel">
+                <div class="panel-heading">
+                    <p class="panel-kicker">CURRENT DETECTION</p>
+                    <div class="detection-actions">
+                        <button id="btn-start-detection" class="detection-action-btn start" type="button">
+                            Mulai Deteksi
+                        </button>
+                        <button id="btn-stop-detection" class="detection-action-btn stop" type="button" disabled>
+                            Stop Deteksi
+                        </button>
+                    </div>
+                </div>
+
+                <div class="current-body">
+                    <div class="empty-state">
+                        <strong>Belum ada deteksi aktif</strong>
+                        <span>Detail akan muncul setelah sesi perekaman kerusakan dimulai.</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <aside class="right-column">
+            <article class="panel map-panel">
+                <div class="panel-heading">
+                    <p class="panel-kicker">LIVE MAP</p>
+                </div>
+
+                <div class="map-view">
+                    <div id="map"></div>
+                    <button id="btn-location" class="map-location-btn" type="button" title="Fokus ke lokasi perangkat" aria-label="Fokus ke lokasi perangkat">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 2v3"></path>
+                            <path d="M12 19v3"></path>
+                            <path d="M2 12h3"></path>
+                            <path d="M19 12h3"></path>
+                        </svg>
+                    </button>
+                </div>
+            </article>
+
+            <article class="panel recent-panel">
+                <div class="panel-heading">
+                    <p class="panel-kicker">RECENT DETECTION</p>
+                </div>
+
+                <div class="recent-list is-empty">
+                    <div class="empty-state compact">
+                        <strong>Belum ada riwayat deteksi</strong>
+                        <span>Riwayat sesi ini masih kosong.</span>
+                    </div>
+                </div>
+            </article>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/operator/live-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/operator/live-camera.js') }}"></script>
+<script src="{{ url_for('static', filename='js/operator/detection-control.js') }}"></script>
+<script>
+    function updateClock() {
+        const now = new Date();
+        document.getElementById("clock").textContent = now.toLocaleTimeString("id-ID");
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+</script>
+{% endblock %}

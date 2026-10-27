@@ -1,0 +1,16 @@
+<nav class="navbar">
+
+    <a href="#landing-page" class="navbar-logo">
+        <!-- <span class="logo-icon"></span> -->
+        <span>Mo-RIS</span>
+    </a>
+
+    <button class="navbar-toggle" id="navbar-toggle">☰</button>
+
+    <div class="navbar-menu" id="navbar-menu">
+        <a href="/" class="{{ 'active' if active_page == 'home' else '' }}">Home</a>
+        <a href="/about" class="{{ 'active' if active_page == 'about' else '' }}">About</a>
+        <a href="/contact" class="{{ 'active' if active_page == 'contact' else '' }}">Contact</a>
+    </div>
+
+</nav>

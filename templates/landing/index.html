@@ -1,0 +1,106 @@
+{% extends "layout/base.html" %}
+
+{% block title %} Landing Page {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing-navbar.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}" />
+{% endblock %}
+
+{% block header %}
+{% include "layout/landing-navbar.html" %}
+{% endblock %}
+
+{% block main %}
+<div class="landing-page" id="landing-page">
+    <div class="dark-overlay" aria-hidden="true"></div>
+    <div class="grid" aria-hidden="true"></div>
+
+<section class="hero">
+    <div class="hero-content">
+        <p class="hero-tag"><a href="/operator">AI Powered Road Monitoring</a> </p>
+        <h1>Mo-RIS</h1>
+        <h2>Mobile Road Inspection System</h2>
+
+        <p class="hero-description">
+            Sistem inspeksi kondisi jalan bergerak berbasis Artificial Intelligence
+            untuk mendeteksi kerusakan jalan secara realtime dan menampilkan
+            lokasi kerusakan langsung pada peta digital.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="/map" class="btn-primary">Explore Map</a>
+            <a href="#statistics-section" class="btn-secondary">Learn More</a>
+        </div>
+
+    </div>
+
+    <div class="scan-box scan-1"></div>
+    <div class="scan-box scan-2"></div>
+    <div class="scan-box scan-3"></div>
+
+</section>
+
+<section class="statistics-section" id="statistics-section">
+    <div class="statistics-panel">
+        <div class="statistics-heading">
+            <img class="statistics-heading-icon" src="{{ url_for('static', filename='assets/icons/stat-heading.svg') }}"
+                alt="">
+
+            <div>
+                <h2 id="statistics-title">Ringkasan Statistik</h2>
+            </div>
+        </div>
+
+        <div class="statistics-cards">
+            <article class="stat-card stat-total">
+                <span class="stat-label">Total Deteksi</span>
+                <strong>{{ "{:,}".format(dashboard_stats.total).replace(",", ".") }}</strong>
+                <span class="stat-description">Kerusakan terdeteksi<br>di seluruh wilayah</span>
+                <span class="stat-icon" aria-hidden="true"
+                    style="--stat-icon: url('/static/assets/icons/stat-total.svg')"></span>
+            </article>
+
+            <article class="stat-card stat-pending">
+                <span class="stat-label">Menunggu Penanganan</span>
+                <strong>{{ "{:,}".format(dashboard_stats.pending).replace(",", ".") }}</strong>
+                <span class="stat-description">Perlu segera<br>ditindaklanjuti</span>
+                <span class="stat-icon" aria-hidden="true"
+                    style="--stat-icon: url('/static/assets/icons/stat-pending.svg')"></span>
+            </article>
+
+            <article class="stat-card stat-processing">
+                <span class="stat-label">Sedang Ditangani</span>
+                <strong>{{ "{:,}".format(dashboard_stats.processing).replace(",", ".") }}</strong>
+                <span class="stat-description">Dalam proses<br>perbaikan</span>
+                <span class="stat-icon" aria-hidden="true"
+                    style="--stat-icon: url('/static/assets/icons/stat-processing.svg')"></span>
+            </article>
+
+            <article class="stat-card stat-completed">
+                <span class="stat-label">Selesai Ditangani</span>
+                <strong>{{ "{:,}".format(dashboard_stats.completed).replace(",", ".") }}</strong>
+                <span class="stat-description">Telah<br>diperbaiki</span>
+                <span class="stat-icon" aria-hidden="true"
+                    style="--stat-icon: url('/static/assets/icons/stat-completed.svg')"></span>
+            </article>
+        </div>
+
+        <div class="statistics-bottom">
+            <div class="statistics-note">
+                <span class="note-mark" aria-hidden="true">✦</span>
+                <div>
+                    <p class="section-kicker">SISTEM PEMANTAUAN JALAN</p>
+                    <h3>Data kerusakan diperbarui dari hasil deteksi terbaru.</h3>
+                    <a href="/map">Lihat peta kerusakan <span aria-hidden="true">→</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

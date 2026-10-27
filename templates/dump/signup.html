@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Daftar - SIKS</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav_btn.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sign.css') }}" />
+</head>
+
+<body>
+    <div class="bg"></div>
+    <header>
+        <div class="navbar">
+            <div class="logo"><a href="/">SIKS</a></div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </header>
+    <div class="cont">
+        <section class="login-section">
+            <div class="login-card">
+                <h1>Daftar Akun Baru</h1>
+
+                <form class="login-form" method="post" action="#">
+                    <div class="form-group">
+                        <label for="name">Nama Lengkap</label>
+                        <input type="text" id="name" name="name" placeholder="Nama Anda" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="nama@email.com" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Nomor Telepon</label>
+                        <input type="tel" id="phone" name="phone" placeholder="0812xxxxxxx" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Alamat (opsional)</label>
+                        <textarea id="address" name="address" rows="3" placeholder="Alamat lengkap"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Konfirmasi Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••"
+                            required />
+                    </div>
+
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="terms" required />
+                        <span>Saya setuju dengan syarat dan ketentuan</span>
+                    </label>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Buat Akun
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p>
+                        Sudah punya akun?
+                        <a href="{{ url_for('signin') }}" class="signup-link">Masuk</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

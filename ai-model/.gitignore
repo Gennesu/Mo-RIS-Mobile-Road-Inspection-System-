@@ -1,0 +1,26 @@
+# Python environment and cache
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local runtime data
+logs/
+output/
+uploads/
+AI/images/
+
+# Large source archives and generated recordings
+*.zip
+*.rar
+*.mp4
+*.avi
+
+# Training/inference output, except the model used by AI/detect.py
+runs/*
+!runs/detect/
+runs/detect/*
+!runs/detect/PODCAST-6/
+runs/detect/PODCAST-6/*
+!runs/detect/PODCAST-6/weights/
+runs/detect/PODCAST-6/weights/*
+!runs/detect/PODCAST-6/weights/bestv7.pt
