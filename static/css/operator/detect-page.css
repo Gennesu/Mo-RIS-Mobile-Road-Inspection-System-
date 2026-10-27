@@ -146,7 +146,7 @@
 }
 
 .detection-action-btn:disabled {
-    cursor: wait;
+    cursor: default;
     opacity: .78;
 }
 

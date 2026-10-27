@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
 
+import psutil
 from flask import Flask, jsonify, render_template
 from routes.user_route import user_bp
 from services.database import fetch_dashboard_stats
@@ -64,16 +65,52 @@ def is_process_running(process):
     return process is not None and process.poll() is None
 
 
-def is_pid_running(pid):
-    if pid is None:
+def managed_process_signature(name):
+    if name == "detector":
+        return AI_DIR, "detect.py"
+    if name == "backend":
+        return BACKEND_DIR, "main:app"
+    return None, None
+
+
+def is_managed_pid(name, pid):
+    expected_dir, signature = managed_process_signature(name)
+    if expected_dir is None:
         return False
 
-    result = subprocess.run(
-        ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-        capture_output=True,
-        text=True,
-    )
-    return result.returncode == 0 and str(pid) in result.stdout
+    try:
+        process = psutil.Process(pid)
+        process_dir = Path(process.cwd()).resolve()
+        command = process.cmdline()
+        return (
+            os.path.normcase(str(process_dir)) == os.path.normcase(str(expected_dir.resolve()))
+            and signature in command
+        )
+    except (psutil.Error, OSError):
+        return False
+
+
+def find_managed_pids(name):
+    expected_dir, signature = managed_process_signature(name)
+    if expected_dir is None:
+        return []
+
+    expected_path = os.path.normcase(str(expected_dir.resolve()))
+    pids = []
+    for process in psutil.process_iter(["pid", "cmdline", "cwd"]):
+        try:
+            command = process.info["cmdline"] or []
+            process_dir = process.info["cwd"]
+            if (
+                process.pid != os.getpid()
+                and signature in command
+                and process_dir
+                and os.path.normcase(str(Path(process_dir).resolve())) == expected_path
+            ):
+                pids.append(process.pid)
+        except (psutil.Error, OSError):
+            continue
+    return pids
 
 
 def get_saved_pid(name):
@@ -89,7 +126,13 @@ def get_saved_pid(name):
 
 def is_named_process_running(name):
     process = operator_processes.get(name)
-    return is_process_running(process) or is_pid_running(get_saved_pid(name))
+    if is_process_running(process):
+        return True
+
+    saved_pid = get_saved_pid(name)
+    return (saved_pid is not None and is_managed_pid(name, saved_pid)) or bool(
+        find_managed_pids(name)
+    )
 
 
 def is_backend_ready():
@@ -136,26 +179,50 @@ def start_background_process(name, command, cwd, env=None):
 def stop_process(name):
     process = operator_processes.get(name)
     pid_path = LOG_DIR / f"{name}.pid"
-
+    pids = set(find_managed_pids(name))
     if is_process_running(process):
-        pid = process.pid
-    else:
-        pid = get_saved_pid(name)
+        pids.add(process.pid)
 
-    if pid is None:
+    saved_pid = get_saved_pid(name)
+    if saved_pid is not None and is_managed_pid(name, saved_pid):
+        pids.add(saved_pid)
+
+    if not pids:
+        if pid_path.exists():
+            pid_path.unlink()
         operator_processes[name] = None
         return False
 
-    result = subprocess.run(
-        ["taskkill", "/PID", str(pid), "/T", "/F"],
-        capture_output=True,
-        text=True,
-    )
-    if pid_path.exists():
-        pid_path.unlink()
+    stopped = True
+    for pid in pids:
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            capture_output=True,
+            text=True,
+        )
+        try:
+            managed_process = psutil.Process(pid)
+            if managed_process.is_running():
+                managed_process.terminate()
+                try:
+                    managed_process.wait(timeout=3)
+                except psutil.TimeoutExpired:
+                    managed_process.kill()
+                    managed_process.wait(timeout=3)
+        except psutil.NoSuchProcess:
+            pass
+        except (psutil.Error, OSError):
+            pass
 
-    operator_processes[name] = None
-    return result.returncode == 0
+        if is_managed_pid(name, pid):
+            stopped = False
+
+    if stopped:
+        if pid_path.exists():
+            pid_path.unlink()
+        operator_processes[name] = None
+
+    return stopped
 
 
 def stop_processes_on_port(port):
@@ -258,13 +325,21 @@ def stop_detection():
         backend_stopped = stop_processes_on_port(8000) or backend_stopped
 
     cleanup_preview_files()
+    detector_running = is_named_process_running("detector")
+    backend_running = is_backend_ready() or is_named_process_running("backend")
 
     return jsonify({
-        "backend_running": is_backend_ready() or is_named_process_running("backend"),
-        "detector_running": is_named_process_running("detector"),
+        "backend_running": backend_running,
+        "detector_running": detector_running,
         "messages": [
-            "Detector dihentikan." if detector_stopped else "Detector tidak berjalan dari tombol operator.",
-            "Backend dihentikan." if backend_stopped else "Backend tidak berjalan dari tombol operator.",
+            "Detector dihentikan." if detector_stopped else (
+                "Detector masih berjalan dan belum melepas kamera."
+                if detector_running else "Detector memang tidak aktif."
+            ),
+            "Backend dihentikan." if backend_stopped else (
+                "Backend masih berjalan."
+                if backend_running else "Backend memang tidak aktif."
+            ),
         ],
     })
 

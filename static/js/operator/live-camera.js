@@ -8,9 +8,9 @@ function setCameraStatus(message) {
 }
 
 async function startCamera() {
-    if (!cameraVideo) return;
+    if (!cameraVideo) return false;
 
-    if (cameraStream) return;
+    if (cameraStream) return true;
     if (cameraStartPromise) return cameraStartPromise;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -19,7 +19,7 @@ async function startCamera() {
                 ? "Browser tidak mendukung akses kamera."
                 : "Kamera perlu localhost atau HTTPS untuk bisa diakses."
         );
-        return;
+        return false;
     }
 
     const startPromise = (async function () {
@@ -27,27 +27,38 @@ async function startCamera() {
         let stream = null;
 
         try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: {ideal: "environment"},
-                    width: {ideal: 1280},
-                    height: {ideal: 720}
-                },
-                audio: false
-            });
+            for (let attempt = 0; attempt < 2; attempt += 1) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: {ideal: "environment"},
+                            width: {ideal: 1280},
+                            height: {ideal: 720}
+                        },
+                        audio: false
+                    });
+                    break;
+                } catch (error) {
+                    if (error.name !== "NotReadableError" || attempt === 1) throw error;
+                    await new Promise(function (resolve) {
+                        setTimeout(resolve, 400);
+                    });
+                }
+            }
 
             // A stop request may arrive while the browser permission prompt is open.
             if (cameraStartPromise !== startPromise) {
                 stream.getTracks().forEach(function (track) {
                     track.stop();
                 });
-                return;
+                return false;
             }
 
             cameraStream = stream;
             cameraVideo.srcObject = stream;
             await cameraVideo.play();
             setCameraStatus("");
+            return true;
         } catch (error) {
             console.error("Gagal membuka kamera.", error);
             if (stream) {
@@ -66,12 +77,13 @@ async function startCamera() {
                 SecurityError: "Kamera perlu localhost atau HTTPS untuk bisa diakses."
             };
             setCameraStatus(messages[error.name] || `Kamera gagal dibuka (${error.name}).`);
+            return false;
         }
     })();
 
     cameraStartPromise = startPromise;
     try {
-        await startPromise;
+        return await startPromise;
     } finally {
         if (cameraStartPromise === startPromise) cameraStartPromise = null;
     }

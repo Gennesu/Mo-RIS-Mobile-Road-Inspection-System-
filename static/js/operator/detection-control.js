@@ -176,15 +176,36 @@ async function stopDetection() {
     setDetectionControls("stopping");
     showTransition("Mengembalikan kamera biasa...");
 
+    let result;
     try {
-        await fetch("/operator/stop-detection", {
+        const response = await fetch("/operator/stop-detection", {
             method: "POST"
         });
+        result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Gagal menghentikan deteksi.");
     } catch (error) {
         console.error("Gagal menghentikan deteksi.", error);
+        hideTransition();
+        setDetectionControls("running");
+        if (window.operatorCamera) {
+            window.operatorCamera.setStatus("Server belum memastikan kamera detector sudah dilepas.");
+        }
+        return;
+    }
+
+    if (result.detector_running) {
+        hideTransition();
+        setDetectionControls("running");
+        if (window.operatorCamera) {
+            window.operatorCamera.setStatus("Detector masih berjalan dan masih memakai kamera.");
+        }
+        return;
     }
 
     hideDetectionPreview();
+    await new Promise(function (resolve) {
+        setTimeout(resolve, 500);
+    });
     if (window.operatorCamera) await window.operatorCamera.start();
     hideTransition();
     setDetectionControls("idle");
