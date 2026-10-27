@@ -145,6 +145,23 @@
     </section>
     {% endif %}
 </div>
+
+<dialog class="delete-dialog" id="delete-confirm-dialog" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-message">
+    <div class="delete-dialog-content">
+        <div class="delete-dialog-heading">
+            <span class="delete-dialog-icon" aria-hidden="true">!</span>
+            <div>
+                <p class="delete-dialog-eyebrow">Konfirmasi penghapusan</p>
+                <h2 id="delete-confirm-title">Hapus lubang?</h2>
+            </div>
+        </div>
+        <p id="delete-confirm-message">Data database dan foto terkait akan dihapus. Tindakan ini tidak dapat dibatalkan.</p>
+        <div class="delete-dialog-actions">
+            <button class="delete-dialog-cancel" type="button" data-cancel-delete>Batal</button>
+            <button class="delete-dialog-confirm" type="button" data-confirm-delete>Ya, hapus lubang</button>
+        </div>
+    </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
