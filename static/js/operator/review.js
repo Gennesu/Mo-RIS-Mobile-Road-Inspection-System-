@@ -108,7 +108,7 @@ reviewCards.forEach((card) => {
                 }
 
                 if (decision === "confirm") {
-                    window.location.assign("/operator/review#confirmed");
+                    window.location.assign("/operator/review?tab=confirmed#confirmed");
                     return;
                 }
 
