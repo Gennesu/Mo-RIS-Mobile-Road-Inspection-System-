@@ -16,6 +16,8 @@ __pycache__/
 # Generated detection output
 static/runtime/
 static/assets/img/*/tmp_*.jpg
+static/assets/img/potholes/pothole_*.jpg
+static/assets/img/cracks/crack_*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
