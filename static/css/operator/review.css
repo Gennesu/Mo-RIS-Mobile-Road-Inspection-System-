@@ -94,6 +94,31 @@
 .review-panel[hidden] { display: none; }
 .review-grid[hidden], .confirmed-card[hidden], .confirmed-empty[hidden] { display: none; }
 .review-delete-notice { width: min(1180px, 100%); min-height: 1.2em; margin: -9px auto 12px; color: #a8f0d4; font-size: .86rem; }
+.selection-controls { width: min(1180px, 100%); margin: 0 auto 16px; }
+.select-visible-label, .review-select-label { display: inline-flex; align-items: center; gap: 8px; color: #c5d0d8; cursor: pointer; font-size: .84rem; font-weight: 700; }
+.select-visible-label { min-height: 36px; }
+.select-visible-label input, .review-select-label input { width: 17px; height: 17px; margin: 0; accent-color: #76d8aa; cursor: pointer; }
+.select-visible-label input:disabled { cursor: not-allowed; }
+.review-select-label { margin: 0 0 12px; color: #9eacb5; }
+.review-card.is-selected { border-color: #6fd0a4; box-shadow: 0 0 0 2px rgba(111, 208, 164, .16), 0 18px 48px rgba(0, 0, 0, .22); }
+.review-selection-toolbar { display: grid; gap: 10px; margin-top: 8px; padding: 14px; border: 1px solid #35463f; border-radius: 14px; background: linear-gradient(135deg, #15201c, #11171d); }
+.review-selection-toolbar[hidden], .bulk-action-btn[hidden] { display: none !important; }
+.selection-summary { color: #c9d8d1; font-size: .9rem; }
+.selection-summary strong { color: #9aebc7; }
+.selection-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.bulk-action-btn { min-height: 40px; padding: 8px 12px; border: 1px solid #5ba77e; border-radius: 10px; color: #071a12; background: #8ce0bb; cursor: pointer; font: inherit; font-size: .83rem; font-weight: 750; }
+.bulk-action-btn:hover:not(:disabled) { background: #b5f5d7; }
+.bulk-action-btn.is-reject { border-color: #81474e; color: #ffe5e7; background: #48272c; }
+.bulk-action-btn.is-reject:hover:not(:disabled) { background: #5a3036; }
+.bulk-action-btn.is-complete { border-color: #3d7898; color: #e7f5ff; background: #24516a; }
+.bulk-action-btn.is-complete:hover:not(:disabled) { background: #2e6684; }
+.bulk-action-btn.is-delete { border-color: #8c4850; color: #ffe5e7; background: #48272c; }
+.bulk-action-btn.is-delete:hover:not(:disabled) { background: #5a3036; }
+.bulk-action-btn.is-cancel { border-color: #414c55; color: #e1e6ea; background: #1b232a; }
+.bulk-action-btn.is-cancel:hover:not(:disabled) { background: #252f37; }
+.bulk-action-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.bulk-action-btn:disabled { cursor: wait; opacity: .58; }
+#bulk-action-feedback { min-height: 1em; margin: 0; color: #ffbdc3; font-size: .83rem; }
 
 .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 470px), 1fr)); gap: 18px; }
 .review-card { overflow: hidden; border: 1px solid #2a343d; border-radius: 18px; background: #11171d; box-shadow: 0 18px 48px rgba(0, 0, 0, .22); }
@@ -296,4 +321,6 @@
     .delete-dialog-content { padding: 22px; }
     .delete-dialog-actions { flex-direction: column-reverse; }
     .delete-dialog-actions button { width: 100%; }
+    .selection-buttons { flex-direction: column; }
+    .bulk-action-btn { width: 100%; }
 }

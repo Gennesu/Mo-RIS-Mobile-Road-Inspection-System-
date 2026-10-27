@@ -37,6 +37,24 @@
         </button>
     </div>
     <p id="review-action-notice" class="review-delete-notice" role="status" aria-live="polite"></p>
+    <div class="selection-controls">
+        <label class="select-visible-label">
+            <input id="select-visible-detections" type="checkbox" disabled>
+            <span>Pilih semua di tab ini</span>
+        </label>
+        <div class="review-selection-toolbar" id="selection-toolbar" hidden>
+            <div class="selection-summary"><strong><span id="selected-detection-count">0</span> dipilih</strong></div>
+            <div class="selection-buttons">
+                <button class="bulk-action-btn" type="button" data-bulk-action="confirm" hidden>Konfirmasi pilihan</button>
+                <button class="bulk-action-btn is-reject" type="button" data-bulk-action="reject" hidden>Tandai bukan lubang</button>
+                <button class="bulk-action-btn" type="button" data-bulk-action="start-handling" hidden>Tandai ditangani</button>
+                <button class="bulk-action-btn is-complete" type="button" data-bulk-action="complete-handling" hidden>Tandai selesai ditangani</button>
+                <button class="bulk-action-btn is-delete" type="button" data-bulk-action="delete" hidden>Hapus pilihan</button>
+                <button class="bulk-action-btn is-cancel" type="button" data-clear-selection>Batal pilih</button>
+            </div>
+            <p id="bulk-action-feedback" role="status" aria-live="polite"></p>
+        </div>
+    </div>
 
     <section class="review-panel is-active" id="review-panel-pending" role="tabpanel" aria-labelledby="review-tab-pending" data-review-panel="pending">
         {% if detections %}
@@ -52,6 +70,10 @@
                     <span class="detection-id">#{{ detection.id }}</span>
                 </div>
                 <div class="review-content">
+                    <label class="review-select-label">
+                        <input type="checkbox" data-select-detection aria-label="Pilih deteksi #{{ detection.id }}">
+                        <span>Pilih deteksi ini</span>
+                    </label>
                     <div class="review-title-row">
                         <div>
                             <p class="review-label">Deteksi awal</p>
@@ -121,6 +143,10 @@
                     <span class="detection-id">#{{ detection.id }}</span>
                 </div>
                 <div class="review-content">
+                    <label class="review-select-label">
+                        <input type="checkbox" data-select-detection aria-label="Pilih lubang #{{ detection.id }}">
+                        <span>Pilih lubang ini</span>
+                    </label>
                     <div class="review-title-row">
                         <div>
                             <p class="review-label">Lubang terkonfirmasi</p>
