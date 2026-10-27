@@ -74,7 +74,9 @@ class RoadDetector:
     def __init__(self, model_path):
         # Leave CPU capacity available for Flask, the browser, and the API.
         cpu_threads = max(1, int(os.getenv("DETECT_TORCH_THREADS", "2")))
+        opencv_threads = max(1, int(os.getenv("DETECT_OPENCV_THREADS", "1")))
         torch.set_num_threads(cpu_threads)
+        cv2.setNumThreads(opencv_threads)
         try:
             torch.set_num_interop_threads(1)
         except RuntimeError:
@@ -95,7 +97,9 @@ class RoadDetector:
         self.preview_interval = float(os.getenv("DETECTION_PREVIEW_INTERVAL", "0.2"))
         self.preview_max_width = int(os.getenv("DETECTION_PREVIEW_WIDTH", "640"))
         self.preview_jpeg_quality = int(os.getenv("DETECTION_PREVIEW_QUALITY", "75"))
-        self.inference_size = int(os.getenv("DETECT_IMGSZ", "512"))
+        # 384 is materially faster on CPU; DETECT_IMGSZ=512 restores the
+        # previous accuracy-oriented setting when a scene needs more detail.
+        self.inference_size = int(os.getenv("DETECT_IMGSZ", "384"))
         self.max_inference_fps = max(0.0, float(os.getenv("DETECT_MAX_FPS", "10")))
         self.inference_interval = (
             1.0 / self.max_inference_fps if self.max_inference_fps > 0 else 0.0
@@ -110,7 +114,8 @@ class RoadDetector:
         print(
             "Detector settings: "
             f"conf={self.confidence_threshold}, imgsz={self.inference_size}, "
-            f"torch_threads={cpu_threads}, max_fps={self.max_inference_fps or 'unlimited'}"
+            f"torch_threads={cpu_threads}, opencv_threads={opencv_threads}, "
+            f"max_fps={self.max_inference_fps or 'unlimited'}"
         )
 
     def write_preview(self, frame):
