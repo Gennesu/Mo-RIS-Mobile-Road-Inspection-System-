@@ -106,18 +106,6 @@
     background: linear-gradient(135deg, #b5f5d7, #7eddb1);
     box-shadow: 0 10px 24px rgba(65, 196, 150, .25);
 }
-.action-icon {
-    display: grid;
-    width: 24px;
-    height: 24px;
-    flex: none;
-    place-items: center;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    font-size: 1rem;
-    font-weight: 800;
-    line-height: 1;
-}
 .review-feedback { min-height: 1em; margin: 10px 0 0; color: #ffbdc3; font-size: .82rem; }
 .review-empty, .review-alert { box-sizing: border-box; padding: 34px; border: 1px solid #2a343d; border-radius: 18px; background: #11171d; text-align: center; }
 .review-empty > span { color: #8ce0bb; font-size: 2rem; }
