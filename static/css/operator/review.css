@@ -61,9 +61,36 @@
 .review-details div { min-width: 0; }
 .review-details dt { margin-bottom: 4px; color: #87949f; font-size: .76rem; }
 .review-details dd { overflow-wrap: anywhere; margin: 0; color: #e3e8ed; font-size: .88rem; }
-.review-note-label { display: block; margin-bottom: 7px; color: #aab4bf; font-size: .82rem; }
-.review-note { box-sizing: border-box; width: 100%; min-height: 66px; resize: vertical; padding: 10px 12px; border: 1px solid #303b45; border-radius: 10px; outline: none; color: #f3f5f7; background: #0b1015; font: inherit; }
-.review-note:focus { border-color: #65c69d; }
+.review-note-label {
+    display: block;
+    margin-bottom: 9px;
+    color: #e1e8e5;
+    font-size: .86rem;
+    font-weight: 700;
+}
+.review-note {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 88px;
+    resize: vertical;
+    padding: 13px 15px;
+    border: 1px solid #34413f;
+    border-radius: 12px;
+    outline: none;
+    color: #f3f5f7;
+    background: linear-gradient(145deg, #0e1418, #0b1114);
+    font: inherit;
+    font-size: .92rem;
+    line-height: 1.55;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.review-note::placeholder { color: #87949a; opacity: 1; }
+.review-note:hover { border-color: #52615f; }
+.review-note:focus {
+    border-color: #72d4a6;
+    background: #0d1714;
+    box-shadow: 0 0 0 4px rgba(65, 196, 150, .13);
+}
 .review-actions { display: flex; gap: 12px; margin-top: 14px; }
 .review-action {
     display: inline-flex;
