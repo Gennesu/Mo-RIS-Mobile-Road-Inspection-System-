@@ -88,6 +88,64 @@ def fetch_potholes():
         conn.close()
 
 
+def fetch_pothole_detail(detection_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                d.detection_id AS id,
+                d.track_id,
+                d.label,
+                d.confidence,
+                d.length_cm,
+                d.width_cm,
+                d.area_cm2,
+                d.image,
+                d.latitude,
+                d.longitude,
+                d.status,
+                d.detected_at,
+                d.created_at,
+                r.name AS road_name
+            FROM detections AS d
+            LEFT JOIN roads AS r ON r.road_id = d.road_id
+            WHERE d.detection_id = %s
+            """,
+            (detection_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+
+        length_cm = float(row.get("length_cm") or 0)
+        width_cm = float(row.get("width_cm") or 0)
+        area_cm2 = float(row.get("area_cm2") or (length_cm * width_cm))
+        image_path = str(row.get("image") or "").replace("\\", "/").lstrip("/")
+
+        if image_path.lower().startswith("images/"):
+            image_path = "assets/img/potholes/" + image_path[7:]
+        elif image_path.lower().startswith("assets/potholes/"):
+            image_path = "assets/img/potholes/" + image_path[len("assets/potholes/"):]
+        elif image_path.lower().startswith("assets/cracks/"):
+            image_path = "assets/img/cracks/" + image_path[len("assets/cracks/"):]
+
+        return {
+            **row,
+            "location_name": row.get("road_name") or f"Pothole #{row['id']}",
+            "status": row.get("status") or "Menunggu Penanganan",
+            "length_cm": length_cm,
+            "width_cm": width_cm,
+            "area_cm2": area_cm2,
+            "image_path": image_path or None,
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def fetch_priority_roads():
     """Return roads sorted by damage score from highest to lowest."""
     conn = get_db_connection()

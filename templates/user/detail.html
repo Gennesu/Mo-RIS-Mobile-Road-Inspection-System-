@@ -1,0 +1,42 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Detail Deteksi #{{ pothole.id }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maps/detail.css') }}" />
+{% endblock %}
+
+{% block main %}
+<div class="detail-page">
+    <a class="detail-back" href="/map">&larr; Kembali ke peta</a>
+
+    <article class="detail-card">
+        <header class="detail-heading">
+            <div>
+                <p class="detail-kicker">DETAIL DETEKSI</p>
+                <h1>{{ pothole.location_name }}</h1>
+            </div>
+            <span class="detail-status">{{ pothole.status }}</span>
+        </header>
+
+        {% if pothole.image_path %}
+        <img class="detail-image" src="{{ url_for('static', filename=pothole.image_path) }}"
+            alt="Foto deteksi {{ pothole.id }}" />
+        {% else %}
+        <div class="detail-image-placeholder">Foto tidak tersedia</div>
+        {% endif %}
+
+        <dl class="detail-grid">
+            <div><dt>ID deteksi</dt><dd>#{{ pothole.id }}</dd></div>
+            <div><dt>Jenis kerusakan</dt><dd>{{ pothole.label or "-" }}</dd></div>
+            <div><dt>Keyakinan model</dt><dd>{{ "%.2f%%"|format(pothole.confidence) if pothole.confidence is not none else "-" }}</dd></div>
+            <div><dt>Panjang</dt><dd>{{ "%.2f cm"|format(pothole.length_cm) }}</dd></div>
+            <div><dt>Lebar</dt><dd>{{ "%.2f cm"|format(pothole.width_cm) }}</dd></div>
+            <div><dt>Luas</dt><dd>{{ "%.2f cm²"|format(pothole.area_cm2) }}</dd></div>
+            <div><dt>Lintang</dt><dd>{{ "%.6f"|format(pothole.latitude) if pothole.latitude is not none else "-" }}</dd></div>
+            <div><dt>Bujur</dt><dd>{{ "%.6f"|format(pothole.longitude) if pothole.longitude is not none else "-" }}</dd></div>
+            <div><dt>Waktu deteksi</dt><dd>{{ pothole.detected_at or pothole.created_at or "-" }}</dd></div>
+        </dl>
+    </article>
+</div>
+{% endblock %}

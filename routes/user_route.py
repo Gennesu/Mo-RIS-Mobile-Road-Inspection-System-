@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template
-from services.database import fetch_potholes, fetch_priority_roads
+from flask import Blueprint, abort, render_template
+from services.database import fetch_pothole_detail, fetch_potholes, fetch_priority_roads
 
 user_bp = Blueprint("user", __name__)
 
@@ -14,6 +14,15 @@ def map():
         potholes=potholes,
         priority_roads=priority_roads,
     )
+
+
+@user_bp.route("/pothole/<int:detection_id>")
+def pothole_detail(detection_id):
+    pothole = fetch_pothole_detail(detection_id)
+    if pothole is None:
+        abort(404)
+
+    return render_template("user/detail.html", pothole=pothole)
 
 # @user_bp.route("/map")
 # def map():
